@@ -1,0 +1,23 @@
+{
+    "name": "su-sws/stanford-caravan",
+    "description": "Tools for testing Drupal 8 on CI/CD",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Mike Decker",
+            "email": "pookmish@stanford.edu"
+        }
+    ],
+    "require": {
+        "consolidation/robo": "^1.4",
+        "boedah/robo-drush": "^4.2"
+    },
+    "bin": [
+        "sws-caravan"
+    ],
+    "autoload": {
+        "psr-4":{
+            "StanfordCaravan\\":"src"
+        }
+    }
+}

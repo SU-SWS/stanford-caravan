@@ -1,0 +1,95 @@
+default:
+  extensions:
+    Behat\MinkExtension:
+      default_session: goutte
+      browser_name: chrome
+      javascript_session: default
+      goutte: ~
+      files_path: "%paths.base%/media"
+    Drupal\DrupalExtension:
+      blackbox: ~
+      api_driver: "drupal"
+    jarnaiz\JUnitFormatter\JUnitFormatterExtension:
+        filename: report.xml
+        outputDir: "%paths.base%/build/tests"
+    Bex\Behat\ScreenshotExtension:
+      screenshot_taking_mode: failed_steps
+      image_drivers:
+        local:
+          screenshot_directory: /tmp
+local:
+  suites:
+    default:
+      paths:
+        features: /var/www/cardinalsites
+        bootstrap: /var/www/cardinalsites/tests/features/bootstrap
+      contexts:
+        - Drupal\FeatureContext:
+          parameters:
+            environment:
+              # absolute path to local directory to store screenshots - do not include trailing slash
+              screenshot_dir: /var/www/cardinalsites/artifacts
+        - Drupal\DrupalExtension\Context\DrupalContext
+        - Drupal\DrupalExtension\Context\MinkContext
+        - Drupal\DrupalExtension\Context\MessageContext
+        - Drupal\DrupalExtension\Context\DrushContext
+        - Drupal\DrupalExtension\Context\ConfigContext
+        - Drupal\FeatureContext
+        - Drupal\FeatureMinkContext
+  extensions:
+    DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
+    Behat\MinkExtension:
+      browser_name: chrome
+      javascript_session: selenium2
+      # configure the base url for your site
+      base_url: http://docroot.cardinalsites.loc
+      # set default command for "Show last response" step.
+      show_cmd: "open %s"
+      # use the following lines to disable SSL authentication for goutte.
+      # goutte:
+      #   guzzle_parameters:
+      #     redirect.disable: true
+      #     ssl.certificate_authority: system
+      #     curl.options:
+      #       CURLOPT_SSL_VERIFYPEER: false
+      #       CURLOPT_SSL_VERIFYHOST: false
+      #       CURLOPT_CERTINFO: false
+      #       CURLOPT_TIMEOUT: 120
+      selenium2:
+        wd_host: http://localhost:4444/wd/hub
+        browser: chrome
+        capabilities:
+          browser: "chrome"
+          version: "*"
+          extra_capabilities:
+            chromeOptions:
+              w3c: false
+      sessions:
+        default:
+          chrome:
+            api_url: "http://localhost:9222"
+        javascript:
+          selenium2:
+            browser: chrome
+            wd_host: http://localhost:4444/wd/hub
+    Drupal\DrupalExtension:
+      blackbox: ~
+      api_driver: 'drupal'
+      drush:
+        alias: '@self'
+        binary: '/var/www/cardinalsites/vendor/bin/drush'
+      drupal:
+        drupal_root: /var/www/cardinalsites/docroot
+      region_map:
+        header: ".region-header"
+        menu: ".region-primary-menu"
+        content: "#content"
+      selectors:
+        message_selector: '.messages'
+        error_message_selector: '.messages.messages--error'
+        success_message_selector: '.messages.messages--status'
+    Bex\Behat\ScreenshotExtension:
+      screenshot_taking_mode: failed_steps
+      image_drivers:
+        local:
+          screenshot_directory: /var/www/cardinalsites/artifacts
