@@ -47,24 +47,22 @@ class RoboFile extends Tasks {
     $this->setupDrupal($html_path, $extension_dir);
 
     $extension_type = $this->getExtensionType($extension_dir);
-    $name = $this->getExtensionName($extension_dir);
+    $extension_name = $this->getExtensionName($extension_dir);
 
     $this->_copy("{$this->toolDir}/config/phpunit.xml", "$html_path/web/core/phpunit.xml");
 
-    // Switch to Robo phpunit when compatible.
-    // @see https://www.drupal.org/project/drupal/issues/2950132
-    $test = $this->taskExec('../vendor/bin/phpunit')
+    $test = $this->taskPhpUnit("../vendor/bin/phpunit")
       ->dir("$html_path/web")
-      ->arg("$html_path/web/{$extension_type}s/custom/$name")
+      ->arg("$html_path/web/{$extension_type}s/custom/$extension_name")
       ->option('config', 'core', '=');
 
     if ($options['with-coverage']) {
       $test->option('filter', '/(Unit|Kernel)/', '=')
-        ->option('coverage-html', "$html_path/artifacts/phpunit/html", '=')
-        ->option('coverage-xml', "$html_path/artifacts/phpunit/xml", '=')
-        ->option('whitelist', "$html_path/web/{$extension_type}s/custom/$name");
+        ->option('coverage-html', "$html_path/artifacts/phpunit/coverage/html", '=')
+        ->option('coverage-xml', "$html_path/artifacts/phpunit/coverage/xml", '=')
+        ->option('whitelist', "$html_path/web/{$extension_type}s/custom/$extension_name");
 
-      $this->fixupPhpunitConfig("$html_path/web/core/phpunit.xml", $extension_type, $name);
+      $this->fixupPhpunitConfig("$html_path/web/core/phpunit.xml", $extension_type, $extension_name);
     }
     $test->option('log-junit', "$html_path/artifacts/phpunit/results.xml")
       ->run();
@@ -104,22 +102,39 @@ class RoboFile extends Tasks {
    *
    * @command behat
    */
-  public function behat($html_path, $options = ['extension-dir' => NULL, 'with-coverage' => FALSE]) {
+  public function behat($html_path, $options = ['extension-dir' => NULL, 'profile' => 'standard']) {
+    $this->taskExec('dockerize -wait tcp://localhost:3306 -timeout 1m')->run();
+    $this->taskExec('apachectl stop; apachectl start')->run();
+
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
     $this->setupDrupal($html_path, $extension_dir);
 
-    $this->taskDrushStack()
-      ->siteInstall('minimal')
+    $extension_type = $this->getExtensionType($extension_dir);
+    $extension_name = $this->getExtensionName($extension_dir);
+
+    $profile = $extension_type == 'profile' ? $extension_name : $options['profile'];
+
+    $this->taskWriteToFile("$html_path/web/sites/default/settings.php")
+      ->textFromFile("{$this->toolDir}/config/circleci.settings.php")
       ->run();
 
-    $extension_type = $this->getExtensionType($extension_dir);
-    $name = $this->getExtensionName($extension_dir);
+    $this->taskDrushStack("vendor/bin/drush")
+      ->dir($html_path)
+      ->siteInstall($profile)
+      ->run();
 
-    $this->taskBehat()
+    $this->taskDrushStack("vendor/bin/drush")
+      ->dir($html_path)
+      ->drush("pm:enable $extension_name")
+      ->run();
+
+    return $this->taskBehat('vendor/bin/behat')
       ->dir($html_path)
       ->config("{$this->toolDir}/config/behat.yml")
-      ->arg("$html_path/web/{$extension_type}s/custom/$name")
-      ->option('suite', 'local')
+      ->arg("$html_path/web/{$extension_type}s/custom/$extension_name")
+      ->option('profile', 'local')
+      ->option('out', "$html_path/artifacts/behat", '=')
+      ->option('format', 'junit')
       ->noInteraction()
       ->run();
   }
@@ -149,36 +164,42 @@ class RoboFile extends Tasks {
         ->option('no-update')
         ->run();
 
-      $this->addComposerMergeFile("{$this->toolDir}/config/composer.json", "$extension_dir/composer.json");
-      $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json");
-
       $this->taskComposerUpdate()
         ->dir($html_path)
+        ->option('prefer-source')
         ->run();
 
-      $this->taskFilesystemStack()
-        ->symlink("$html_path/docroot", "$html_path/web")
+      // Symlink docroot directory to web directory.
+      $this->taskExec('ln')
+        ->dir($html_path)
+        ->arg("$html_path/web")
+        ->arg('docroot')
+        ->option('symbolic')
         ->run();
     }
 
+    $this->addComposerMergeFile("$html_path/composer.json", "$extension_dir/composer.json");
+    $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json");
+
     $this->taskComposerUpdate()
       ->dir($html_path)
+      ->option('prefer-source')
       ->run();
 
     $extension_type = $this->getExtensionType($extension_dir);
-    $name = $this->getExtensionName($extension_dir);
+    $extension_name = $this->getExtensionName($extension_dir);
 
     // Create the custom directory if it doesn't already exist.
     if (!file_exists("$html_path/web/{$extension_type}s/custom")) {
       $this->_mkdir("$html_path/web/{$extension_type}s/custom");
     }
     // Ensure the extensions's directory is clean first.
-    $this->_deleteDir("$html_path/web/{$extension_type}s/custom/$name");
+    $this->_deleteDir("$html_path/web/{$extension_type}s/custom/$extension_name");
 
     // Copy the extension into its appropriate path.
     $this->taskRsync()
       ->fromPath("$extension_dir/")
-      ->toPath("$html_path/web/{$extension_type}s/custom/$name")
+      ->toPath("$html_path/web/{$extension_type}s/custom/$extension_name")
       ->recursive()
       ->option('exclude', 'html')
       ->run();
@@ -191,12 +212,13 @@ class RoboFile extends Tasks {
   protected function addComposerMergeFile($composer_path, $file_to_merge, $update = FALSE) {
     $composer = json_decode(file_get_contents($composer_path), TRUE);
     $composer['extra']['merge-plugin']['require'][] = $file_to_merge;
+    $composer['extra']['merge-plugin']['require'] = array_unique($composer['extra']['merge-plugin']['require']);
     $composer['extra']['merge-plugin']['merge-extra'] = TRUE;
     $composer['extra']['merge-plugin']['merge-extra-deep'] = TRUE;
     $composer['extra']['merge-plugin']['merge-scripts'] = TRUE;
     $composer['extra']['merge-plugin']['replace'] = FALSE;
     $composer['extra']['merge-plugin']['ignore-duplicates'] = TRUE;
-    file_put_contents($composer_path, json_encode($composer));
+    file_put_contents($composer_path, json_encode($composer, JSON_PRETTY_PRINT));
 
     if ($update) {
       $this->taskComposerUpdate()
@@ -243,8 +265,8 @@ class RoboFile extends Tasks {
    *   Drupal extension type.
    */
   protected function getExtensionType($dir) {
-    $name = $this->getExtensionName($dir);
-    $info_contents = file_get_contents("$dir/$name.info.yml");
+    $extension_name = $this->getExtensionName($dir);
+    $info_contents = file_get_contents("$dir/$extension_name.info.yml");
     $matches = preg_grep('/^type:.*?$/x', explode("\n", $info_contents));
     return trim(str_replace('type: ', '', reset($matches)));
   }

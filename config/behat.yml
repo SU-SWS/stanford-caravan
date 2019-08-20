@@ -21,28 +21,20 @@ local:
   suites:
     default:
       paths:
-        features: /var/www/cardinalsites
-        bootstrap: /var/www/cardinalsites/tests/features/bootstrap
+        features: ./
       contexts:
-        - Drupal\FeatureContext:
-          parameters:
-            environment:
-              # absolute path to local directory to store screenshots - do not include trailing slash
-              screenshot_dir: /var/www/cardinalsites/artifacts
         - Drupal\DrupalExtension\Context\DrupalContext
         - Drupal\DrupalExtension\Context\MinkContext
         - Drupal\DrupalExtension\Context\MessageContext
         - Drupal\DrupalExtension\Context\DrushContext
         - Drupal\DrupalExtension\Context\ConfigContext
-        - Drupal\FeatureContext
-        - Drupal\FeatureMinkContext
   extensions:
     DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
     Behat\MinkExtension:
       browser_name: chrome
       javascript_session: selenium2
       # configure the base url for your site
-      base_url: http://docroot.cardinalsites.loc
+      base_url: http://localhost
       # set default command for "Show last response" step.
       show_cmd: "open %s"
       # use the following lines to disable SSL authentication for goutte.
@@ -77,9 +69,9 @@ local:
       api_driver: 'drupal'
       drush:
         alias: '@self'
-        binary: '/var/www/cardinalsites/vendor/bin/drush'
+        binary: './vendor/bin/drush'
       drupal:
-        drupal_root: /var/www/cardinalsites/docroot
+        drupal_root: './docroot'
       region_map:
         header: ".region-header"
         menu: ".region-primary-menu"
@@ -92,4 +84,4 @@ local:
       screenshot_taking_mode: failed_steps
       image_drivers:
         local:
-          screenshot_directory: /var/www/cardinalsites/artifacts
+          screenshot_directory: './artifacts'

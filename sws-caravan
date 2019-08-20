@@ -26,8 +26,7 @@ $configurationFilename = 'circleci.config.yml';
 
 // Define our Runner, and pass it the command classes we provide.
 $runner = new \Robo\Runner($commandClasses);
-$runner
-  ->setSelfUpdateRepository($selfUpdateRepository)
+$runner->setSelfUpdateRepository($selfUpdateRepository)
   ->setConfigurationFilename($configurationFilename)
   ->setClassLoader($classLoader);
 
