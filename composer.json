@@ -16,8 +16,11 @@
         "sws-caravan"
     ],
     "autoload": {
-        "psr-4":{
-            "StanfordCaravan\\":"src"
+        "psr-4": {
+            "StanfordCaravan\\": "src"
+        },
+        "psr-0": {
+            "StanfordBehat\\": "src"
         }
     }
 }

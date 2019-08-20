@@ -133,8 +133,6 @@ class RoboFile extends Tasks {
       ->config("{$this->toolDir}/config/behat.yml")
       ->arg("$html_path/web/{$extension_type}s/custom/$extension_name")
       ->option('profile', 'local')
-      ->option('out', "$html_path/artifacts/behat", '=')
-      ->option('format', 'junit')
       ->noInteraction()
       ->run();
   }

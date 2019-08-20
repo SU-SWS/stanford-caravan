@@ -23,11 +23,18 @@ local:
       paths:
         features: ./
       contexts:
+        - StanfordBehat\DrupalExtension\Context\SwsContext:
+            parameters:
+              environment:
+                # absolute path to local directory to store screenshots - do not include trailing slash
+                screenshot_dir: ./artifacts
         - Drupal\DrupalExtension\Context\DrupalContext
         - Drupal\DrupalExtension\Context\MinkContext
         - Drupal\DrupalExtension\Context\MessageContext
         - Drupal\DrupalExtension\Context\DrushContext
         - Drupal\DrupalExtension\Context\ConfigContext
+        - StanfordBehat\DrupalExtension\Context\SwsContext
+        - StanfordBehat\DrupalExtension\Context\SwsMinkContext
   extensions:
     DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
     Behat\MinkExtension:
