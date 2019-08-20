@@ -41,12 +41,14 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    */
   public function afterScenarioCleanUpMedia() {
     $user = $this->getUserManager()->getCurrentUser();
-    if (!$user) {
+
+    $entity_type_manager = \Drupal::entityTypeManager();
+
+    if (!$user || !$entity_type_manager->hasDefinition('media')) {
       return;
     }
 
-    $media_entities = \Drupal::entityTypeManager()
-      ->getStorage('media')
+    $media_entities = $entity_type_manager->getStorage('media')
       ->loadByProperties(['uid' => $user->uid]);
 
     // Delete the media entities.
@@ -54,8 +56,7 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
       $this->getDriver()->entityDelete('media', $media_item);
     }
 
-    $files = \Drupal::entityTypeManager()
-      ->getStorage('file')
+    $files = $entity_type_manager->getStorage('file')
       ->loadByProperties(['uid' => $user->uid]);
 
     // Delete the files that were on those media entities.
