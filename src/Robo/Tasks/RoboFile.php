@@ -41,9 +41,19 @@ class RoboFile extends Tasks {
    *
    * @command phpunit
    */
-  public function phpunit($html_path, $options = ['extension-dir' => NULL, 'with-coverage' => FALSE]) {
+  public function phpunit($html_path, $options = ['extension-dir' => NULL, 'with-coverage' => FALSE, 'coverage-required' => 90]) {
 
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
+    if (empty(exec("find $extension_dir/ -name tests"))) {
+      // Tests must be provided for src code.
+      if (!empty(exec("find $extension_dir/ -name src"))) {
+        throw new \Exception('No tests exist. Please add tests for the provided code');
+      }
+
+      $this->say('Nothing to test');
+      return;
+    }
+
     $this->setupDrupal($html_path, $extension_dir);
 
     $extension_type = $this->getExtensionType($extension_dir);
@@ -66,6 +76,28 @@ class RoboFile extends Tasks {
     }
     $test->option('log-junit', "$html_path/artifacts/phpunit/results.xml")
       ->run();
+
+    if ($options['with-coverage']) {
+      $this->checkCoverageReport("$html_path/artifacts/phpunit/coverage/xml/index.xml", $options['coverage-required']);
+    }
+  }
+
+  /**
+   * Check if the code coverage is sufficient.
+   *
+   * @param string $report
+   *   Path to coverage report.
+   */
+  public function checkCoverageReport($report, $required_coverage) {
+    $dom = new \DOMDocument();
+    libxml_use_internal_errors(TRUE);
+    $dom->loadHTML(file_get_contents($report));
+    $xpath = new \DOMXPath($dom);
+    $total_coverage = $xpath->query("//directory[@name='/']/totals/lines/@percent")->item(0)->nodeValue;
+    if ((float) $total_coverage < (float) $required_coverage) {
+      throw new \Exception("Code coverage is not sufficient at $total_coverage%. $required_coverage% is required.");
+    }
+    $this->say("Code coverage at $total_coverage%.");
   }
 
   /**
@@ -107,6 +139,12 @@ class RoboFile extends Tasks {
     $this->taskExec('apachectl stop; apachectl start')->run();
 
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
+
+    if (empty(exec("find $extension_dir/ -name *.feature"))) {
+      $this->say('No behat features exist to test');
+      return;
+    }
+
     $this->setupDrupal($html_path, $extension_dir);
 
     $extension_type = $this->getExtensionType($extension_dir);

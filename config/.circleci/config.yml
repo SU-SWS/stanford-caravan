@@ -71,4 +71,15 @@ workflows:
     jobs:
       - run-coverage
       - run-behat
-
+  # Re-test every sunday in case this code becomes stale.
+  sundays:
+    jobs:
+      - run-coverage
+      - run-behat
+    triggers:
+      - schedule:
+          cron: "0 0 * * 0"
+          filters:
+            branches:
+              only:
+                - 8.x-1.x
