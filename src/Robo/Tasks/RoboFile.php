@@ -115,7 +115,7 @@ class RoboFile extends Tasks {
     $directories = $dom->getElementsByTagName('directory');
     for ($i = 0; $i < $directories->length; $i++) {
       $directory = $directories->item($i)->nodeValue;
-      $directory = str_replace('modules', "{$extension_type}s", $directory);
+      $directory = str_replace('modules/custom/*', "{$extension_type}s/custom/$extension_name", $directory);
       $directories->item($i)->nodeValue = $directory;
     }
     file_put_contents($config_path, $dom->saveXML());
