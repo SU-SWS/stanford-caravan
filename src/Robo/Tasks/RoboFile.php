@@ -214,6 +214,8 @@ class RoboFile extends Tasks {
         ->run();
     }
 
+    $this->taskFilesystemStack()->remove("$html_path/artifacts");
+
     $this->addComposerMergeFile("$html_path/composer.json", "$extension_dir/composer.json");
     $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json");
 
