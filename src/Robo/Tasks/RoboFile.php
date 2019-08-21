@@ -202,7 +202,6 @@ class RoboFile extends Tasks {
 
       $this->taskComposerUpdate()
         ->dir($html_path)
-        ->option('prefer-source')
         ->run();
 
       // Symlink docroot directory to web directory.
@@ -221,7 +220,6 @@ class RoboFile extends Tasks {
 
     $this->taskComposerUpdate()
       ->dir($html_path)
-      ->option('prefer-source')
       ->run();
 
     $extension_type = $this->getExtensionType($extension_dir);
