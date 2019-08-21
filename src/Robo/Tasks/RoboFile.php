@@ -59,7 +59,7 @@ class RoboFile extends Tasks {
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
 
-    $this->_copy("{$this->toolDir}/config/phpunit.xml", "$html_path/web/core/phpunit.xml");
+    $this->taskFilesystemStack()->copy("{$this->toolDir}/config/phpunit.xml", "$html_path/web/core/phpunit.xml", TRUE)->run();
 
     $test = $this->taskPhpUnit("../vendor/bin/phpunit")
       ->dir("$html_path/web")
@@ -69,8 +69,7 @@ class RoboFile extends Tasks {
     if ($options['with-coverage']) {
       $test->option('filter', '/(Unit|Kernel)/', '=')
         ->option('coverage-html', "$html_path/artifacts/phpunit/coverage/html", '=')
-        ->option('coverage-xml', "$html_path/artifacts/phpunit/coverage/xml", '=')
-        ->option('whitelist', "$html_path/web/{$extension_type}s/custom/$extension_name");
+        ->option('coverage-xml', "$html_path/artifacts/phpunit/coverage/xml", '=');
 
       $this->fixupPhpunitConfig("$html_path/web/core/phpunit.xml", $extension_type, $extension_name);
     }
@@ -116,7 +115,7 @@ class RoboFile extends Tasks {
     $directories = $dom->getElementsByTagName('directory');
     for ($i = 0; $i < $directories->length; $i++) {
       $directory = $directories->item($i)->nodeValue;
-      $directory = str_replace('modules/custom', "{$extension_type}s/custom/$extension_name", $directory);
+      $directory = str_replace('modules', "{$extension_type}s", $directory);
       $directories->item($i)->nodeValue = $directory;
     }
     file_put_contents($config_path, $dom->saveXML());
