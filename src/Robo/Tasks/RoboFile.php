@@ -42,8 +42,9 @@ class RoboFile extends Tasks {
    * @command phpunit
    */
   public function phpunit($html_path, $options = ['extension-dir' => NULL, 'with-coverage' => FALSE, 'coverage-required' => 90]) {
-
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
+    $this->lintPhp($extension_dir);
+
     if (empty(exec("find $extension_dir/ -name tests"))) {
       // Tests must be provided for src code.
       if (!empty(exec("find $extension_dir/ -name src"))) {
@@ -76,9 +77,56 @@ class RoboFile extends Tasks {
     $test->option('log-junit', "$html_path/artifacts/phpunit/results.xml")
       ->run();
 
+    $errors = [];
     if ($options['with-coverage']) {
-      $this->checkCoverageReport("$html_path/artifacts/phpunit/coverage/xml/index.xml", $options['coverage-required']);
+      $errors[] = $this->checkCoverageReport("$html_path/artifacts/phpunit/coverage/xml/index.xml", $options['coverage-required']);
     }
+
+    $this->taskExec("$html_path/vendor/bin/drupal-check")
+      ->arg($extension_dir)
+      ->run();
+
+    $errors[] = $this->checkFileNameLengths($extension_dir);
+    if (array_filter($errors)) {
+      throw new \Exception(implode(PHP_EOL, array_filter($errors)));
+    }
+  }
+
+  protected function lintPhp($dir) {
+    $php_lint_extenstions = [
+      'php',
+      'module',
+      'theme',
+      'install',
+    ];
+
+    array_walk($php_lint_extenstions, function (&$extension) {
+      $extension = "-name '*.$extension'";
+    });
+    $php_lint_extenstions = implode(' -o ', $php_lint_extenstions);
+
+    exec("find $dir -type f \( $php_lint_extenstions \) -exec php -l {} \; | grep -v 'No syntax errors detected'", $output);
+    if (!empty(array_filter($output))) {
+      throw new \Exception(implode(PHP_EOL, array_filter($output)));
+    }
+  }
+
+  protected function checkDeprecatedCode($drupal_check_bin, $dir) {
+
+  }
+
+  protected function checkFileNameLengths($dir) {
+    $errors = [];
+    exec("find $dir -type f -name 'field.storage.*'", $files);
+    foreach ($files as $file) {
+      $filename = basename($file);
+      list(, , $entity_type, $field_name,) = explode('.', $filename);
+      if (strlen("{$entity_type}_revision__$field_name") >= 48) {
+        $count = 48 - strlen("{$entity_type}_revision__");
+        $errors[] = "$filename field name is too long. Keep the field name under $count characters on '$entity_type' entities.";
+      }
+    }
+    return implode(PHP_EOL, $errors);
   }
 
   /**
@@ -94,7 +142,7 @@ class RoboFile extends Tasks {
     $xpath = new \DOMXPath($dom);
     $total_coverage = $xpath->query("//directory[@name='/']/totals/lines/@percent")->item(0)->nodeValue;
     if ((float) $total_coverage < (float) $required_coverage) {
-      throw new \Exception("Code coverage is not sufficient at $total_coverage%. $required_coverage% is required.");
+      return "Code coverage is not sufficient at $total_coverage%. $required_coverage% is required.";
     }
     $this->say("Code coverage at $total_coverage%.");
   }
