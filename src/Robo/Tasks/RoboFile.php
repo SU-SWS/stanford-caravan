@@ -83,6 +83,7 @@ class RoboFile extends Tasks {
     }
 
     $this->taskExec("$html_path/vendor/bin/drupal-check")
+      ->dir("$html_path/web")
       ->arg($extension_dir)
       ->run();
 
