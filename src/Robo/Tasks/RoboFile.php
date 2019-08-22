@@ -84,7 +84,7 @@ class RoboFile extends Tasks {
 
     $this->taskExec("$html_path/vendor/bin/drupal-check")
       ->dir("$html_path/web")
-      ->arg($extension_dir)
+      ->arg("$html_path/web/{$extension_type}s/custom/$extension_name")
       ->run();
 
     $errors[] = $this->checkFileNameLengths($extension_dir);
