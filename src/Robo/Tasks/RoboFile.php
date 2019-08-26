@@ -41,7 +41,11 @@ class RoboFile extends Tasks {
    *
    * @command phpunit
    */
-  public function phpunit($html_path, $options = ['extension-dir' => NULL, 'with-coverage' => FALSE, 'coverage-required' => 90]) {
+  public function phpunit($html_path, $options = [
+    'extension-dir' => NULL,
+    'with-coverage' => FALSE,
+    'coverage-required' => 90,
+  ]) {
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
     $this->lintPhp($extension_dir);
 
@@ -60,7 +64,9 @@ class RoboFile extends Tasks {
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
 
-    $this->taskFilesystemStack()->copy("{$this->toolDir}/config/phpunit.xml", "$html_path/web/core/phpunit.xml", TRUE)->run();
+    $this->taskFilesystemStack()
+      ->copy("{$this->toolDir}/config/phpunit.xml", "$html_path/web/core/phpunit.xml", TRUE)
+      ->run();
 
     $test = $this->taskPhpUnit("../vendor/bin/phpunit")
       ->dir("$html_path/web")
@@ -137,11 +143,15 @@ class RoboFile extends Tasks {
    *   Path to coverage report.
    */
   public function checkCoverageReport($report, $required_coverage) {
+    if (!file_exists($report)) {
+      return;
+    }
     $dom = new \DOMDocument();
     libxml_use_internal_errors(TRUE);
     $dom->loadHTML(file_get_contents($report));
     $xpath = new \DOMXPath($dom);
-    $total_coverage = $xpath->query("//directory[@name='/']/totals/lines/@percent")->item(0)->nodeValue;
+    $total_coverage = $xpath->query("//directory[@name='/']/totals/lines/@percent")
+      ->item(0)->nodeValue;
     if ((float) $total_coverage < (float) $required_coverage) {
       return "Code coverage is not sufficient at $total_coverage%. $required_coverage% is required.";
     }
@@ -182,7 +192,10 @@ class RoboFile extends Tasks {
    *
    * @command behat
    */
-  public function behat($html_path, $options = ['extension-dir' => NULL, 'profile' => 'standard']) {
+  public function behat($html_path, $options = [
+    'extension-dir' => NULL,
+    'profile' => 'standard',
+  ]) {
     $this->taskExec('dockerize -wait tcp://localhost:3306 -timeout 1m')->run();
     $this->taskExec('apachectl stop; apachectl start')->run();
 
@@ -266,9 +279,9 @@ class RoboFile extends Tasks {
     $this->addComposerMergeFile("$html_path/composer.json", "$extension_dir/composer.json");
     $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json");
 
-    $this->taskComposerUpdate()
-      ->dir($html_path)
-      ->run();
+    //    $this->taskComposerUpdate()
+    //      ->dir($html_path)
+    //      ->run();
 
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
