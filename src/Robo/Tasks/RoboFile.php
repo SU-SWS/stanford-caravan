@@ -161,7 +161,7 @@ class RoboFile extends Tasks {
     if ((float) $total_coverage < (float) $required_coverage) {
       return "Code coverage is not sufficient at $total_coverage%. $required_coverage% is required.";
     }
-    $this->say("Code coverage at $total_coverage%.");
+    $this->yell("Code coverage at $total_coverage%.");
   }
 
   /**
@@ -282,13 +282,6 @@ class RoboFile extends Tasks {
 
     $this->taskFilesystemStack()->remove("$html_path/artifacts");
 
-    $this->addComposerMergeFile("$html_path/composer.json", "$extension_dir/composer.json");
-    $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json");
-
-    $this->taskComposerUpdate()
-      ->dir($html_path)
-      ->run();
-
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
 
@@ -306,14 +299,34 @@ class RoboFile extends Tasks {
       ->recursive()
       ->option('exclude', 'html')
       ->run();
+
+    $this->say('Adding composer merge files.');
+    $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json", TRUE);
+    $this->addComposerMergeFile("$html_path/composer.json", "$html_path/web/{$extension_type}s/custom/$extension_name/composer.json");
+
+    $this->taskComposerUpdate()
+      ->dir($html_path)
+      ->run();
   }
 
   /**
-   * @param $composer_path
-   * @param $file_to_merge
+   * Add a file to composer merge.
+   *
+   * @param string $composer_path
+   *   Original composer.json file.
+   * @param string $file_to_merge
+   *   Composer.json path to be merged.
+   * @param bool $update
+   *   Run composer updates after merging.
+   * @param bool $clear_merges
+   *   Clear the merge plugin before adding the file.
    */
-  protected function addComposerMergeFile($composer_path, $file_to_merge, $update = FALSE) {
+  protected function addComposerMergeFile($composer_path, $file_to_merge, $update = FALSE, $clear_merges = FALSE) {
     $composer = json_decode(file_get_contents($composer_path), TRUE);
+    if ($clear_merges) {
+      $composer['extra']['merge-plugin']['require'] = [];
+    }
+
     $composer['extra']['merge-plugin']['require'][] = $file_to_merge;
     $composer['extra']['merge-plugin']['require'] = array_unique($composer['extra']['merge-plugin']['require']);
     $composer['extra']['merge-plugin']['merge-extra'] = TRUE;
