@@ -83,6 +83,8 @@ class RoboFile extends Tasks {
     $test->option('log-junit', "$html_path/artifacts/phpunit/results.xml")
       ->run();
 
+    $this->_deleteDir("$html_path/web/sites/simpletest");
+
     $errors = [];
     if ($options['with-coverage']) {
       $errors[] = $this->checkCoverageReport("$html_path/artifacts/phpunit/coverage/xml/index.xml", $options['coverage-required']);
