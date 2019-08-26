@@ -302,11 +302,7 @@ class RoboFile extends Tasks {
 
     $this->say('Adding composer merge files.');
     $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json", FALSE, TRUE);
-    $this->addComposerMergeFile("$html_path/composer.json", "$html_path/web/{$extension_type}s/custom/$extension_name/composer.json");
-
-    $this->taskComposerUpdate()
-      ->dir($html_path)
-      ->run();
+    $this->addComposerMergeFile("$html_path/composer.json", "$html_path/web/{$extension_type}s/custom/$extension_name/composer.json", TRUE);
   }
 
   /**
