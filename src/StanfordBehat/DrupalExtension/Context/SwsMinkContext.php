@@ -36,7 +36,7 @@ class SwsMinkContext extends RawMinkContext {
    * @param string $size
    *   Small, Medium, Large, or 'Extra Large' screen.
    *
-   * @Then I set window size to :size
+   * @Then I set the window size to :size
    */
   public function iSetWindowSize($size) {
     $sizes = [
