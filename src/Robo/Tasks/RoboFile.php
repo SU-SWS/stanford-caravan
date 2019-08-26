@@ -99,6 +99,14 @@ class RoboFile extends Tasks {
     }
   }
 
+  /**
+   * Lint php files.
+   *
+   * @param string $dir
+   *   Path to lint.
+   *
+   * @throws \Exception
+   */
   protected function lintPhp($dir) {
     $php_lint_extenstions = [
       'php',
@@ -116,10 +124,6 @@ class RoboFile extends Tasks {
     if (!empty(array_filter($output))) {
       throw new \Exception(implode(PHP_EOL, array_filter($output)));
     }
-  }
-
-  protected function checkDeprecatedCode($drupal_check_bin, $dir) {
-
   }
 
   protected function checkFileNameLengths($dir) {
@@ -279,9 +283,9 @@ class RoboFile extends Tasks {
     $this->addComposerMergeFile("$html_path/composer.json", "$extension_dir/composer.json");
     $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json");
 
-    //    $this->taskComposerUpdate()
-    //      ->dir($html_path)
-    //      ->run();
+    $this->taskComposerUpdate()
+      ->dir($html_path)
+      ->run();
 
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
