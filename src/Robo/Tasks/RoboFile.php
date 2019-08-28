@@ -281,7 +281,7 @@ class RoboFile extends Tasks {
         ->run();
     }
 
-    $this->taskFilesystemStack()->remove("$html_path/artifacts");
+    $this->_deleteDir("$html_path/artifacts");
 
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
