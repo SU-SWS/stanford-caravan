@@ -41,6 +41,7 @@ class SwsMinkContext extends RawMinkContext {
   public function iSetWindowSize($size) {
     // Sizes are width, height values for the window size.
     $sizes = [
+      'extra small' => [575, 320],
       'small' => [576, 320],
       'medium' => [768, 1024],
       'large' => [992, 768],
