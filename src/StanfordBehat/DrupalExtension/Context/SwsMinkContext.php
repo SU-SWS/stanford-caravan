@@ -31,6 +31,33 @@ class SwsMinkContext extends RawMinkContext {
   }
 
   /**
+   * Set the window to a breakpoint size.
+   *
+   * @param string $size
+   *   Small, Medium, Large, or 'Extra Large' screen.
+   *
+   * @Then I set the window size to :size
+   */
+  public function iSetWindowSize($size) {
+    // Sizes are width, height values for the window size.
+    $sizes = [
+      'extra small' => [575, 320],
+      'small' => [576, 320],
+      'medium' => [768, 1024],
+      'large' => [992, 768],
+      'extra large' => [1500, 800],
+    ];
+
+    $size = strtolower($size);
+    if (array_key_exists($size, $sizes)) {
+      $this->iSetWindowDimensions($sizes[$size][0], $sizes[$size][1]);
+      return;
+    }
+
+    $this->iSetWindowDimensions($sizes['extra large'][0], $sizes['extra large'][1]);
+  }
+
+  /**
    * Change the window dimensions.
    *
    * @param int $width
