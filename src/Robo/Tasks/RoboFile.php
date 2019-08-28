@@ -90,7 +90,7 @@ class RoboFile extends Tasks {
       $errors[] = $this->checkCoverageReport("$html_path/artifacts/phpunit/coverage/xml/index.xml", $options['coverage-required']);
     }
 
-    $this->taskExec("$html_path/vendor/bin/drupal-check")
+    $deprecation_result = $this->taskExec("$html_path/vendor/bin/drupal-check")
       ->dir("$html_path/web")
       ->arg("$html_path/web/{$extension_type}s/custom/$extension_name")
       ->run();
@@ -99,6 +99,7 @@ class RoboFile extends Tasks {
     if (array_filter($errors)) {
       throw new \Exception(implode(PHP_EOL, array_filter($errors)));
     }
+    return $deprecation_result;
   }
 
   /**
