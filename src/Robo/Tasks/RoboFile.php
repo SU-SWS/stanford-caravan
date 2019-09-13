@@ -268,7 +268,6 @@ class RoboFile extends Tasks {
         ->option('no-update')
         ->run();
 
-      $this->fixWebflowComposer();
       $this->taskComposerUpdate()
         ->dir($html_path)
         ->run();
@@ -281,7 +280,7 @@ class RoboFile extends Tasks {
         ->option('symbolic')
         ->run();
     }
-    $this->fixWebflowComposer();
+
     $this->_deleteDir("$html_path/artifacts");
 
     $extension_type = $this->getExtensionType($extension_dir);
@@ -312,16 +311,6 @@ class RoboFile extends Tasks {
       $delete_task->remove($file);
     }
     $delete_task->run();
-  }
-
-  /**
-   * Temporarily fix weblow dependencies.
-   */
-  protected function fixWebflowComposer() {
-    $this->taskComposerRequire("behat/mink-selenium2-driver:'dev-master as 1.3.x-dev'")
-      ->option('dev')
-      ->option('no-update')
-      ->run();
   }
 
   /**
