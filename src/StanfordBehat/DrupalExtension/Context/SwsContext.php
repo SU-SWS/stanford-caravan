@@ -3,6 +3,7 @@
 namespace StanfordBehat\DrupalExtension\Context;
 
 use Behat\Behat\Hook\Scope\AfterStepScope;
+use Behat\Mink\Exception\ElementNotFoundException;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
 use Drupal\DrupalExtension\Context\DrushContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
@@ -189,6 +190,17 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
 
     // Nope.
     return FALSE;
+  }
+
+  /**
+   * @Then I fill in element :locator with :value
+   */
+  public function iFillInElementWith($locator, $value) {
+    $field = $this->getSession()->getPage()->find('css', $locator);
+    if (NULL === $field) {
+      throw new ElementNotFoundException($this->getDriver(), 'form field', 'css', $locator);
+    }
+    $field->setValue($value);
   }
 
 }
