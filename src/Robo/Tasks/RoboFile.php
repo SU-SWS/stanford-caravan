@@ -80,8 +80,9 @@ class RoboFile extends Tasks {
 
       $this->fixupPhpunitConfig("$html_path/web/core/phpunit.xml", $extension_type, $extension_name);
     }
-    $test->option('log-junit', "$html_path/artifacts/phpunit/results.xml")
+    $result = $test->option('log-junit', "$html_path/artifacts/phpunit/results.xml")
       ->run();
+    $test_exit_code = $result->getExitCode();
 
     $this->_deleteDir("$html_path/web/sites/simpletest");
 
@@ -99,7 +100,7 @@ class RoboFile extends Tasks {
     if (array_filter($errors)) {
       throw new \Exception(implode(PHP_EOL, array_filter($errors)));
     }
-    return $deprecation_result;
+    return $test_exit_code ?: $deprecation_result;
   }
 
   /**
