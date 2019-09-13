@@ -104,6 +104,18 @@ class RoboFile extends Tasks {
   }
 
   /**
+   * Temporarily fix the dependency of a missing branch.
+   *
+   * @param string $composer
+   *   Path to composer file.
+   */
+  protected function tempFixMink($composer) {
+    $composer_contents = json_decode(file_get_contents($composer));
+    $composer_contents['require-dev']['behat/mink-selenium2-driver'] = 'dev-master as 1.3.x-dev';
+    file_put_contents($composer, json_encode($composer_contents));
+  }
+
+  /**
    * Lint php files.
    *
    * @param string $dir
@@ -268,7 +280,7 @@ class RoboFile extends Tasks {
         ->arg('wikimedia/composer-merge-plugin')
         ->option('no-update')
         ->run();
-
+      $this->tempFixMink("$html_path/composer.json");
       $this->taskComposerUpdate()
         ->dir($html_path)
         ->run();
@@ -281,7 +293,7 @@ class RoboFile extends Tasks {
         ->option('symbolic')
         ->run();
     }
-
+    $this->tempFixMink("$html_path/composer.json");
     $this->_deleteDir("$html_path/artifacts");
 
     $extension_type = $this->getExtensionType($extension_dir);
@@ -342,6 +354,10 @@ class RoboFile extends Tasks {
     file_put_contents($composer_path, json_encode($composer, JSON_PRETTY_PRINT));
 
     if ($update) {
+      $this->taskComposerUpdate()
+        ->dir(dirname($composer_path))
+        ->run();
+      // Run twice to make sure its all there.
       $this->taskComposerUpdate()
         ->dir(dirname($composer_path))
         ->run();
