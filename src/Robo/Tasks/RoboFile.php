@@ -268,6 +268,11 @@ class RoboFile extends Tasks {
         ->option('no-update')
         ->run();
 
+      $this->taskComposerRequire("behat/mink-selenium2-driver:'dev-master as 1.3.x-dev'")
+        ->option('dev')
+        ->option('no-update')
+        ->run();
+
       $this->taskComposerUpdate()
         ->dir($html_path)
         ->run();
@@ -304,6 +309,13 @@ class RoboFile extends Tasks {
     $this->say('Adding composer merge files.');
     $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json", FALSE, TRUE);
     $this->addComposerMergeFile("$html_path/composer.json", "$html_path/web/{$extension_type}s/custom/$extension_name/composer.json", TRUE);
+
+    $media_files = glob("$html_path/web/core/profiles/standard/config/optional/*media*");
+    $delete_task = $this->taskFilesystemStack();
+    foreach ($media_files as $file) {
+      $delete_task->remove($file);
+    }
+    $delete_task->run();
   }
 
   /**
