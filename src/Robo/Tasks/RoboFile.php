@@ -110,7 +110,7 @@ class RoboFile extends Tasks {
    *   Path to composer file.
    */
   protected function tempFixMink($composer) {
-    $composer_contents = json_decode(file_get_contents($composer));
+    $composer_contents = json_decode(file_get_contents($composer), TRUE);
     $composer_contents['require-dev']['behat/mink-selenium2-driver'] = 'dev-master as 1.3.x-dev';
     file_put_contents($composer, json_encode($composer_contents));
   }
