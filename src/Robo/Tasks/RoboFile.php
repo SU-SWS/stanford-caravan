@@ -111,6 +111,13 @@ class RoboFile extends Tasks {
   protected function uploadCoverageCodeClimate($clover_coverage, $extension_dir) {
     if (!file_exists($clover_coverage)) {
       $this->say('No coverage to upload to code climate.');
+      return;
+    }
+
+    if (!isset($_ENV['CC_TEST_REPORTER_ID'])) {
+      $this->writeln();
+      $this->say('To enable codeclimate coverage uploads, please set the "CC_TEST_REPORTER_ID" environment variable to enable this feature.');
+      return;
     }
 
     $get_report_tool = $this->taskExec("curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter")
@@ -118,17 +125,17 @@ class RoboFile extends Tasks {
     $executable_tool = $this->taskExec(' chmod +x ./cc-test-reporter')
       ->dir($extension_dir);
 
-    $covert_coverage = $this->taskExec("./cc-test-reporter format-coverage -t clover -o codeclimate.backend.json $clover_coverage")
-      ->dir($extension_dir);
+    $copy_clover = $this->taskFilesystemStack()
+      ->copy($clover_coverage, "$extension_dir/clover.xml");
 
-    $upload_coverage = $this->taskExec("./cc-test-reporter upload-coverage -i codeclimate.backend.json")
+    $upload_coverage = $this->taskExec("./cc-test-reporter after-build -t clover")
       ->dir($extension_dir);
 
     $tasks = $this->collectionBuilder();
     $tasks->addTaskList([
       $get_report_tool,
       $executable_tool,
-      $covert_coverage,
+      $copy_clover,
       $upload_coverage,
     ]);
     $tasks->run();
