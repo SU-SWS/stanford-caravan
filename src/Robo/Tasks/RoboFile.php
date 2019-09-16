@@ -109,6 +109,9 @@ class RoboFile extends Tasks {
    * @param $clover_coverage
    */
   protected function uploadCoverageCodeClimate($clover_coverage, $extension_dir) {
+    if (!file_exists($clover_coverage)) {
+      $this->say('No coverage to upload to code climate.');
+    }
 
     $get_report_tool = $this->taskExec("curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter")
       ->dir($extension_dir);
