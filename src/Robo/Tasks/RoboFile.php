@@ -76,7 +76,8 @@ class RoboFile extends Tasks {
     if ($options['with-coverage']) {
       $test->option('filter', '/(Unit|Kernel)/', '=')
         ->option('coverage-html', "$html_path/artifacts/phpunit/coverage/html", '=')
-        ->option('coverage-xml', "$html_path/artifacts/phpunit/coverage/xml", '=');
+        ->option('coverage-xml', "$html_path/artifacts/phpunit/coverage/xml", '=')
+        ->option('coverage-clover', "$html_path/artifacts/phpunit/coverage/clover.xml");
 
       $this->fixupPhpunitConfig("$html_path/web/core/phpunit.xml", $extension_type, $extension_name);
     }
@@ -89,6 +90,7 @@ class RoboFile extends Tasks {
     $errors = [];
     if ($options['with-coverage']) {
       $errors[] = $this->checkCoverageReport("$html_path/artifacts/phpunit/coverage/xml/index.xml", $options['coverage-required']);
+      $this->uploadCoverageCodeClimate("$html_path/artifacts/phpunit/coverage/clover.xml", "$html_path/web/{$extension_type}s/custom/$extension_name");
     }
 
     $deprecation_result = $this->taskExec("$html_path/vendor/bin/drupal-check")
@@ -101,6 +103,32 @@ class RoboFile extends Tasks {
       throw new \Exception(implode(PHP_EOL, array_filter($errors)));
     }
     return $test_exit_code ?: $deprecation_result;
+  }
+
+  /**
+   * @param $clover_coverage
+   */
+  protected function uploadCoverageCodeClimate($clover_coverage, $extension_dir) {
+
+    $get_report_tool = $this->taskExec("curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter")
+      ->dir($extension_dir);
+    $executable_tool = $this->taskExec(' chmod +x ./cc-test-reporter')
+      ->dir($extension_dir);
+
+    $covert_coverage = $this->taskExec("./cc-test-reporter format-coverage -t clover -o codeclimate.backend.json $clover_coverage")
+      ->dir($extension_dir);
+
+    $upload_coverage = $this->taskExec("./cc-test-reporter upload-coverage -i codeclimate.backend.json")
+      ->dir($extension_dir);
+
+    $tasks = $this->collectionBuilder();
+    $tasks->addTaskList([
+      $get_report_tool,
+      $executable_tool,
+      $covert_coverage,
+      $upload_coverage,
+    ]);
+    $tasks->run();
   }
 
   /**
