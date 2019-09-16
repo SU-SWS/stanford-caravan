@@ -115,8 +115,8 @@ class RoboFile extends Tasks {
     }
 
     if (!isset($_ENV['CC_TEST_REPORTER_ID'])) {
-      $this->writeln();
       $this->say('To enable codeclimate coverage uploads, please set the "CC_TEST_REPORTER_ID" environment variable to enable this feature.');
+      $this->say('This can be found on the codeclimate repository settings page.');
       return;
     }
 
