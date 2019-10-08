@@ -28,6 +28,10 @@ class RoboFile extends Tasks {
     $this->toolDir = dirname(__FILE__, 4);
   }
 
+  public function miketest() {
+    $this->say($this->getLatestDrupalVersion());
+  }
+
   /**
    * Run phpunit tests on the given extension.
    *
@@ -355,11 +359,7 @@ class RoboFile extends Tasks {
       ->run();
 
     if ($lastest_drupal) {
-      $this->taskComposerRequire()
-        ->dir($html_path)
-        ->arg('drupal/core:^8.8')
-        ->option('no-update')
-        ->run();
+      $this->getLatestDrupalVersion($html_path);
     }
 
     $this->say('Adding composer merge files.');
@@ -372,6 +372,31 @@ class RoboFile extends Tasks {
       $delete_task->remove($file);
     }
     $delete_task->run();
+  }
+
+  /**
+   * Updates composer.json to use the latest version of drupal core available.
+   *
+   * @param string $dir
+   *   Directory of the composer.json
+   */
+  protected function getLatestDrupalVersion($dir) {
+    $response = $this->taskExecStack()
+      ->dir($dir)
+      ->exec('composer show -a drupal/core')
+      ->printOutput(FALSE)
+      ->run()
+      ->getMessage();
+    preg_match('/versions.*\n/', $response, $matches);
+    $versions = trim(str_replace('versions :', '', $matches[0]));
+    $versions = explode(',', $versions);
+
+    $this->say(sprintf('Getting %s version of Drupal Core', trim($versions[0])));
+    $this->taskComposerRequire()
+      ->dir($html_path)
+      ->arg('drupal/core:' . trim($versions[0]))
+      ->option('no-update')
+      ->run();
   }
 
   /**
