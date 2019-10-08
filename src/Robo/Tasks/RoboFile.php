@@ -389,7 +389,7 @@ class RoboFile extends Tasks {
 
     $this->say(sprintf('Getting %s version of Drupal Core', trim($versions[0])));
     $this->taskComposerRequire()
-      ->dir($html_path)
+      ->dir($dir)
       ->arg('drupal/core:' . trim($versions[0]))
       ->option('no-update')
       ->run();
