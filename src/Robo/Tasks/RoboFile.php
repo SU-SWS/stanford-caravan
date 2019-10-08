@@ -28,10 +28,6 @@ class RoboFile extends Tasks {
     $this->toolDir = dirname(__FILE__, 4);
   }
 
-  public function miketest() {
-    $this->say($this->getLatestDrupalVersion());
-  }
-
   /**
    * Run phpunit tests on the given extension.
    *
