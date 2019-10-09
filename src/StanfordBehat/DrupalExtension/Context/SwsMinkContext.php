@@ -149,7 +149,12 @@ class SwsMinkContext extends RawMinkContext {
         return new File([u8arr], filename, {type:mime});
     }
     var newfile = dataURLtoFile('$base64', '$file_name');
-    Dropzone.instances[0].addFile(newfile);";
+    Dropzone.instances.forEach(function(instance, index){
+      if(window.getComputedStyle(instance.element).display === 'block'){
+        Dropzone.instances[index].addFile(newfile);;
+      }
+    });
+    ";
     $this->getSession()->executeScript($javascript);
 
     // Give dropzone 2 seconds to complete.
