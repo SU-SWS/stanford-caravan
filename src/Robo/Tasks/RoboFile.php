@@ -45,6 +45,7 @@ class RoboFile extends Tasks {
     'extension-dir' => NULL,
     'with-coverage' => FALSE,
     'coverage-required' => 90,
+    'latest-drupal' => FALSE,
   ]) {
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
     $this->lintPhp($extension_dir);
@@ -59,7 +60,7 @@ class RoboFile extends Tasks {
       return;
     }
 
-    $this->setupDrupal($html_path, $extension_dir);
+    $this->setupDrupal($html_path, $extension_dir, $options['latest-drupal']);
 
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
@@ -253,6 +254,7 @@ class RoboFile extends Tasks {
   public function behat($html_path, $options = [
     'extension-dir' => NULL,
     'profile' => 'standard',
+    'latest-drupal' => FALSE,
   ]) {
     $this->taskExec('dockerize -wait tcp://localhost:3306 -timeout 1m')->run();
     $this->taskExec('apachectl stop; apachectl start')->run();
@@ -264,7 +266,7 @@ class RoboFile extends Tasks {
       return;
     }
 
-    $this->setupDrupal($html_path, $extension_dir);
+    $this->setupDrupal($html_path, $extension_dir, $options['latest-drupal']);
 
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
@@ -302,7 +304,7 @@ class RoboFile extends Tasks {
    * @param string $extension_dir
    *   Path to the extension being tested.
    */
-  protected function setupDrupal($html_path, $extension_dir) {
+  protected function setupDrupal($html_path, $extension_dir, $lastest_drupal = FALSE) {
 
     // The directory is completely empty, built all the dependencies.
     if (!is_dir($html_path) || $this->isDirEmpty($html_path)) {
@@ -333,6 +335,9 @@ class RoboFile extends Tasks {
     }
     $this->tempFixMink("$html_path/composer.json");
     $this->_deleteDir("$html_path/artifacts");
+    // Delete core directory to avoid update issues since we delete files from
+    // the standard profile later. This also ensure we always get a clean core.
+    $this->_deleteDir("$html_path/web/core");
 
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
@@ -352,6 +357,10 @@ class RoboFile extends Tasks {
       ->option('exclude', 'html')
       ->run();
 
+    if ($lastest_drupal) {
+      $this->getLatestDrupalVersion($html_path);
+    }
+
     $this->say('Adding composer merge files.');
     $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json", FALSE, TRUE);
     $this->addComposerMergeFile("$html_path/composer.json", "$html_path/web/{$extension_type}s/custom/$extension_name/composer.json", TRUE);
@@ -362,6 +371,31 @@ class RoboFile extends Tasks {
       $delete_task->remove($file);
     }
     $delete_task->run();
+  }
+
+  /**
+   * Updates composer.json to use the latest version of drupal core available.
+   *
+   * @param string $dir
+   *   Directory of the composer.json
+   */
+  protected function getLatestDrupalVersion($dir) {
+    $response = $this->taskExecStack()
+      ->dir($dir)
+      ->exec('composer show -a drupal/core')
+      ->printOutput(FALSE)
+      ->run()
+      ->getMessage();
+    preg_match('/versions.*\n/', $response, $matches);
+    $versions = trim(str_replace('versions :', '', $matches[0]));
+    $versions = explode(',', $versions);
+
+    $this->say(sprintf('Getting %s version of Drupal Core', trim($versions[0])));
+    $this->taskComposerRequire()
+      ->dir($dir)
+      ->arg('drupal/core:' . trim($versions[0]))
+      ->option('no-update')
+      ->run();
   }
 
   /**
