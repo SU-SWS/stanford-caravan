@@ -335,6 +335,9 @@ class RoboFile extends Tasks {
     }
     $this->tempFixMink("$html_path/composer.json");
     $this->_deleteDir("$html_path/artifacts");
+    // Delete core directory to avoid update issues since we delete files from
+    // the standard profile later. This also ensure we always get a clean core.
+    $this->_deleteDir("$html_path/web/core");
 
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
