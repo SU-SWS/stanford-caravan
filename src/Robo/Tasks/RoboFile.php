@@ -287,12 +287,12 @@ class RoboFile extends Tasks {
       ->drush("pm:enable $extension_name")
       ->run();
 
-    $this->taskDrushStack()
+    $this->taskDrushStack("vendor/bin/drush")
       ->dir($html_path)
       ->drush('pmu simplesamlphp_auth')
       ->run();
 
-    $this->taskDrushStack()
+    $this->taskDrushStack("vendor/bin/drush")
       ->dir($html_path)
       ->drush('cr')
       ->run();
