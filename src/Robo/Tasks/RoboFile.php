@@ -287,6 +287,16 @@ class RoboFile extends Tasks {
       ->drush("pm:enable $extension_name")
       ->run();
 
+    $this->taskDrushStack()
+      ->dir($html_path)
+      ->drush('pmu simplesamlphp_auth')
+      ->run();
+
+    $this->taskDrushStack()
+      ->dir($html_path)
+      ->drush('cr')
+      ->run();
+
     return $this->taskBehat('vendor/bin/behat')
       ->dir($html_path)
       ->config("{$this->toolDir}/config/behat.yml")

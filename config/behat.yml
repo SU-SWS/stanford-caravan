@@ -80,9 +80,13 @@ local:
       drupal:
         drupal_root: '/var/www/html/docroot'
       region_map:
-        header: ".region-header"
-        menu: ".region-primary-menu"
-        content: "#content"
+        header: ".region-header, body > div > header"
+        menu: ".region-primary-menu, nav.su-main-nav"
+        content: "#content, .system-main-block"
+        help: "body > div > header"
+        search: ".search-block-form"
+        footer_menu: ".menu--footer"
+        global_footer: ".su-global-footer"
       selectors:
         message_selector: '.messages'
         error_message_selector: '.messages.messages--error'
