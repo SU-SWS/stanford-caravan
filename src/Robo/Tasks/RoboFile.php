@@ -400,10 +400,22 @@ class RoboFile extends Tasks {
     $versions = trim(str_replace('versions :', '', $matches[0]));
     $versions = explode(',', $versions);
 
-    $this->say(sprintf('Getting %s version of Drupal Core', trim($versions[0])));
+    $install_version = NULL;
+    foreach ($versions as $key => $version) {
+      if (strpos($version, '-dev') !== FALSE) {
+        continue;
+      }
+      // If the latest stable version is something like 8.7.4, then there is a
+      // version for 8.7-dev and then 8.8-dev. We want the second from the
+      // latest stable version.
+      $install_version = $versions[$key - 2];
+      break;
+    }
+
+    $this->say(sprintf('Getting %s version of Drupal Core', trim($install_version)));
     $this->taskComposerRequire()
       ->dir($dir)
-      ->arg('drupal/core:' . trim($versions[0]))
+      ->arg('drupal/core:' . trim($install_version))
       ->option('no-update')
       ->run();
   }
