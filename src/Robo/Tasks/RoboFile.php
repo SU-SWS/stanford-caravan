@@ -371,6 +371,10 @@ class RoboFile extends Tasks {
       $this->getLatestDrupalVersion($html_path);
     }
 
+    $this->taskFilesystemStack()
+      ->copy($this->toolDir . '/config/fix-missing-class.patch', "$html_path/fix-missing-class.patch")
+      ->run();
+
     $this->say('Adding composer merge files.');
     $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json", FALSE, TRUE);
     $this->addComposerMergeFile("$html_path/composer.json", "$html_path/web/{$extension_type}s/custom/$extension_name/composer.json", TRUE);

@@ -28,6 +28,11 @@
         "behat/mink-selenium2-driver": "dev-master as 1.3.x-dev"
     },
     "extra": {
+        "patches": {
+            "mglaman/phpstan-drupal": {
+                "fix-missing-class.patch": "./fix-missing-class.patch"
+            }
+        },
         "installer-paths": {
             "web/core": [
                 "type:drupal-core"
