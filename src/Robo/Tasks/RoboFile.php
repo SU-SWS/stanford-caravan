@@ -452,6 +452,9 @@ class RoboFile extends Tasks {
     file_put_contents($composer_path, json_encode($composer, JSON_PRETTY_PRINT));
 
     if ($update) {
+      // Delete contrib directories to prevent composer questions about patches.
+      $this->taskDeleteDir(dirname($composer_path). '/web/modules/contrib')->run();
+      $this->taskDeleteDir(dirname($composer_path). '/web/core')->run();
       $this->taskComposerUpdate()
         ->dir(dirname($composer_path))
         ->run();
