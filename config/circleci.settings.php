@@ -38,6 +38,8 @@ $settings['container_yamls'][] = $dir . '/docroot/sites/blt.development.services
 // Allow access to update.php.
 $settings['update_free_access'] = TRUE;
 
+$settings['file_temp_path'] = '/tmp';
+
 /**
  * Assertions.
  *
