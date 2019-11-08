@@ -315,34 +315,34 @@ class RoboFile extends Tasks {
    *   Path to the extension being tested.
    */
   protected function setupDrupal($html_path, $extension_dir, $lastest_drupal = FALSE) {
+    // Clear the directory & built all the dependencies.
+    $this->_deleteDir($html_path);
 
-    // The directory is completely empty, built all the dependencies.
-    if (!is_dir($html_path) || $this->isDirEmpty($html_path)) {
-      $this->taskComposerCreateProject()
-        ->arg('drupal-composer/drupal-project:8.x-dev')
-        ->arg($html_path)
-        ->option('no-interaction')
-        ->option('no-install')
-        ->run();
+    $this->taskComposerCreateProject()
+      ->arg('drupal-composer/drupal-project:8.x-dev')
+      ->arg($html_path)
+      ->option('no-interaction')
+      ->option('no-install')
+      ->run();
 
-      $this->taskComposerRequire()
-        ->dir($html_path)
-        ->arg('wikimedia/composer-merge-plugin')
-        ->option('no-update')
-        ->run();
-      $this->tempFixMink("$html_path/composer.json");
-      $this->taskComposerUpdate()
-        ->dir($html_path)
-        ->run();
+    $this->taskComposerRequire()
+      ->dir($html_path)
+      ->arg('wikimedia/composer-merge-plugin')
+      ->option('no-update')
+      ->run();
+    $this->tempFixMink("$html_path/composer.json");
+    $this->taskComposerUpdate()
+      ->dir($html_path)
+      ->run();
 
-      // Symlink docroot directory to web directory.
-      $this->taskExec('ln')
-        ->dir($html_path)
-        ->arg("$html_path/web")
-        ->arg('docroot')
-        ->option('symbolic')
-        ->run();
-    }
+    // Symlink docroot directory to web directory.
+    $this->taskExec('ln')
+      ->dir($html_path)
+      ->arg("$html_path/web")
+      ->arg('docroot')
+      ->option('symbolic')
+      ->run();
+
     $this->tempFixMink("$html_path/composer.json");
     $this->_deleteDir("$html_path/artifacts");
     // Delete core directory to avoid update issues since we delete files from
@@ -453,8 +453,9 @@ class RoboFile extends Tasks {
 
     if ($update) {
       // Delete contrib directories to prevent composer questions about patches.
-      $this->taskDeleteDir(dirname($composer_path). '/web/modules/contrib')->run();
-      $this->taskDeleteDir(dirname($composer_path). '/web/core')->run();
+      $this->taskDeleteDir(dirname($composer_path) . '/web/modules/contrib')
+        ->run();
+      $this->taskDeleteDir(dirname($composer_path) . '/web/core')->run();
       $this->taskComposerUpdate()
         ->dir(dirname($composer_path))
         ->run();
