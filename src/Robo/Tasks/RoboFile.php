@@ -317,6 +317,7 @@ class RoboFile extends Tasks {
   protected function setupDrupal($html_path, $extension_dir, $lastest_drupal = FALSE) {
     // Clear the directory & built all the dependencies.
     $this->_cleanDir($html_path);
+    $this->taskFilesystemStack()->remove("$html_path/.gitignore")->run();
 
     $this->taskComposerCreateProject()
       ->arg('drupal-composer/drupal-project:8.x-dev')
