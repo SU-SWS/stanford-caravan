@@ -124,6 +124,48 @@ class SwsMinkContext extends RawMinkContext {
   }
 
   /**
+   * Wait up to 5 seconds for an element to be visible.
+   *
+   * @Then I wait for element :selector
+   */
+  public function iWaitForElement($selector) {
+    $this->spin(function ($context, $selector) {
+      $element = $context->getSession()
+        ->getPage()
+        ->find('css', $selector);
+      if ($element && $element->isVisible()) {
+        return TRUE;
+      }
+    }, $selector);
+  }
+
+  /**
+   * @param callable $lambda
+   * @param $selector
+   * @param int $attempts
+   *
+   * @return bool
+   */
+  protected function waitForSelector(callable $lambda, $selector, $attempts = 5) {
+    $lastErrorMessage = '';
+
+    for ($i = 0; $i < $attempts; $i++) {
+      try {
+        if ($lambda($this, $selector)) {
+          return TRUE;
+        }
+      }
+      catch (Exception $e) {
+        // Store the message to display.
+        $last_message = $e->getMessage();
+      }
+      sleep(1);
+    }
+
+    throw new ElementNotVisible('The element is not available ' . $last_message);
+  }
+
+  /**
    * Put an image into dropzone js area.
    *
    * @param string $path
