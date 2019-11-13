@@ -325,6 +325,12 @@ class RoboFile extends Tasks {
       ->option('no-interaction')
       ->option('no-install')
       ->run();
+    
+    $this->taskComposerRequire()
+      ->dir($html_path)
+      ->arg('drupal/core:^8.8.0')
+      ->option('no-update')
+      ->run();
 
     $this->taskComposerRequire()
       ->dir($html_path)
