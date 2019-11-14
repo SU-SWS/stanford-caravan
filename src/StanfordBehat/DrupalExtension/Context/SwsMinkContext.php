@@ -235,6 +235,7 @@ class SwsMinkContext extends RawMinkContext {
     $value = str_replace("'", "\'", str_replace("\n", '', $value));
     $this->getSession()
       ->executeScript("CKEDITOR.instances['$fieldId'].setData('$value');");
+    sleep(2);
   }
 
   /**
