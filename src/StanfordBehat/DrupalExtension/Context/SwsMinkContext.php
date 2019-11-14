@@ -129,7 +129,7 @@ class SwsMinkContext extends RawMinkContext {
    * @Then I wait for element :selector
    */
   public function iWaitForElement($selector) {
-    $this->spin(function ($context, $selector) {
+    $this->waitForSelector(function ($context, $selector) {
       $element = $context->getSession()
         ->getPage()
         ->find('css', $selector);
