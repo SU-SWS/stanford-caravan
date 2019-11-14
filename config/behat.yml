@@ -81,7 +81,7 @@ local:
         drupal_root: '/var/www/html/docroot'
       region_map:
         header: ".region-header, body > div > header"
-        menu: ".region-primary-menu, nav.su-main-nav"
+        menu: ".region-primary-menu, .su-masthead nav"
         content: "#content, .system-main-block"
         help: "body > div > header"
         search: ".search-block-form"
