@@ -146,7 +146,7 @@ class SwsMinkContext extends RawMinkContext {
    *
    * @return bool
    */
-  protected function waitForSelector(callable $lambda, $selector, $attempts = 5) {
+  protected function waitForSelector(callable $lambda, $selector, $attempts = 30) {
     $lastErrorMessage = '';
 
     for ($i = 0; $i < $attempts; $i++) {
