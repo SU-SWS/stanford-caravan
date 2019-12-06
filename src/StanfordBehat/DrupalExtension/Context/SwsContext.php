@@ -7,6 +7,7 @@ use Behat\Mink\Exception\ElementNotFoundException;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
 use Drupal\DrupalExtension\Context\DrushContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
+use Drupal\Core\Entity\EntityInterface;
 
 /**
  * FeatureContext class defines custom step definitions for Behat.
@@ -54,7 +55,7 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
 
     // Delete the media entities.
     foreach ($media_entities as $media_item) {
-      $this->getDriver()->entityDelete('media', $media_item);
+      $this->deleteEntity('media', $media_item);
     }
 
     $files = $entity_type_manager->getStorage('file')
@@ -62,7 +63,31 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
 
     // Delete the files that were on those media entities.
     foreach ($files as $file) {
-      $this->getDriver()->entityDelete('file', $file);
+      $this->deleteEntity('file', $file);
+    }
+  }
+
+  /**
+   * Delete the given entity.
+   *
+   * @param string $entity_type
+   *   Type of entity.
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   Entity to delete.
+   *
+   * @link https://github.com/jhedstrom/DrupalDriver/blob/4c56f48ebf35646cfe012cad01c5c3405b2273b3/src/Drupal/Driver/DrupalDriver.php#L332
+   */
+  protected function deleteEntity($entity_type, EntityInterface $entity) {
+    // Different versions of DrupalDriver have different parameter restrictions.
+    try {
+      // Older version doesn't require a stdClass object.
+      $this->getDriver()->entityDelete($entity_type, $entity);
+    }
+    catch (\Exception $e) {
+      // Newer version does require a stdClass for some reason.
+      $stdClass_item = new \stdClass();
+      $stdClass_item->id = $entity->id();
+      $this->getDriver()->entityDelete($entity_type, $stdClass_item);
     }
   }
 
@@ -124,7 +149,8 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    *
-   * @Then the element :element should have the attribute :attribute with the value :value
+   * @Then the element :element should have the attribute :attribute with the
+   *   value :value
    */
   public function theElementShouldHaveAttribute($element, $attribute, $value) {
     $this->getMink()
@@ -160,7 +186,8 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
     $element = $this->getSession()->getPage();
     $buttonObj = $element->findButton($button);
     if (empty($buttonObj)) {
-      throw new \Exception(sprintf("The button '%s' was not found on the page %s", $button, $this->getSession()->getCurrentUrl()));
+      throw new \Exception(sprintf("The button '%s' was not found on the page %s", $button, $this->getSession()
+        ->getCurrentUrl()));
     }
 
     return $buttonObj->getAttribute('disabled');
