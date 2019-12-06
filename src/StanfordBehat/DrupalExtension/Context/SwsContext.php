@@ -73,8 +73,10 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    *   Type of entity.
    * @param \Drupal\Core\Entity\EntityInterface $entity
    *   Entity to delete.
+   *
+   * @link https://github.com/jhedstrom/DrupalDriver/blob/4c56f48ebf35646cfe012cad01c5c3405b2273b3/src/Drupal/Driver/DrupalDriver.php#L332
    */
-  protected function deleteEntity($entity_type, $entity) {
+  protected function deleteEntity($entity_type, EntityInterface $entity) {
     // Different versions of DrupalDriver have different parameter restrictions.
     try {
       // Older version doesn't require a stdClass object.
