@@ -7,6 +7,7 @@ use Behat\Mink\Exception\ElementNotFoundException;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
 use Drupal\DrupalExtension\Context\DrushContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
+use Drupal\Core\Entity\EntityInterface;
 
 /**
  * FeatureContext class defines custom step definitions for Behat.
@@ -105,10 +106,8 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    *
-   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" elements in
-   *   the "(?P<region>[^"]*)" region?$/
-   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" element in the
-   *   "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" elements in the "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" element in the "(?P<region>[^"]*)" region?$/
    */
   public function iShouldSeeElementsInTheRegion($num, $element, $region) {
     $regionObj = $this->getRegion($region);
@@ -129,10 +128,8 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    *
-   * @Then /^(?:|I )should not see a "(?P<element>[^"]*)" element in the
-   *   "(?P<region>[^"]*)" region?$/
-   * @Then /^(?:|I )should not see an "(?P<element>[^"]*)" element in the
-   *   "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should not see a "(?P<element>[^"]*)" element in the "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should not see an "(?P<element>[^"]*)" element in the "(?P<region>[^"]*)" region?$/
    */
   public function iShouldNotSeeElementsInTheRegion($element, $region) {
     $regionObj = $this->getRegion($region);
