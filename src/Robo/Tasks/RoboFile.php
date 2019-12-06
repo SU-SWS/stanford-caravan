@@ -143,18 +143,6 @@ class RoboFile extends Tasks {
   }
 
   /**
-   * Temporarily fix the dependency of a missing branch.
-   *
-   * @param string $composer
-   *   Path to composer file.
-   */
-  protected function tempFixMink($composer) {
-    $composer_contents = json_decode(file_get_contents($composer), TRUE);
-    $composer_contents['require-dev']['behat/mink-selenium2-driver'] = 'dev-master as 1.3.x-dev';
-    file_put_contents($composer, json_encode($composer_contents));
-  }
-
-  /**
    * Lint php files.
    *
    * @param string $dir
@@ -325,12 +313,6 @@ class RoboFile extends Tasks {
       ->option('no-interaction')
       ->option('no-install')
       ->run();
-    
-    $this->taskComposerRequire()
-      ->dir($html_path)
-      ->arg('drupal/core:^8.8.0')
-      ->option('no-update')
-      ->run();
 
     $this->taskComposerRequire()
       ->dir($html_path)
@@ -349,8 +331,7 @@ class RoboFile extends Tasks {
       ->arg('docroot')
       ->option('symbolic')
       ->run();
-
-    $this->tempFixMink("$html_path/composer.json");
+    
     $this->_deleteDir("$html_path/artifacts");
     // Delete core directory to avoid update issues since we delete files from
     // the standard profile later. This also ensure we always get a clean core.
@@ -377,10 +358,6 @@ class RoboFile extends Tasks {
     if ($lastest_drupal) {
       $this->getLatestDrupalVersion($html_path);
     }
-
-    $this->taskFilesystemStack()
-      ->copy($this->toolDir . '/config/fix-missing-class.patch', "$html_path/fix-missing-class.patch")
-      ->run();
 
     $this->say('Adding composer merge files.');
     $this->addComposerMergeFile("$html_path/composer.json", "{$this->toolDir}/config/composer.json", FALSE, TRUE);
