@@ -54,7 +54,7 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
 
     // Delete the media entities.
     foreach ($media_entities as $media_item) {
-      $this->getDriver()->entityDelete('media', $media_item);
+      $this->deleteEntity('media', $media_item);
     }
 
     $files = $entity_type_manager->getStorage('file')
@@ -62,7 +62,29 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
 
     // Delete the files that were on those media entities.
     foreach ($files as $file) {
-      $this->getDriver()->entityDelete('file', $file);
+      $this->deleteEntity('file', $file);
+    }
+  }
+
+  /**
+   * Delete the given entity.
+   *
+   * @param string $entity_type
+   *   Type of entity.
+   * @param \Drupal\Core\Entity\EntityInterface $entity
+   *   Entity to delete.
+   */
+  protected function deleteEntity($entity_type, $entity) {
+    // Different versions of DrupalDriver have different parameter restrictions.
+    try {
+      // Older version doesn't require a stdClass object.
+      $this->getDriver()->entityDelete($entity_type, $entity);
+    }
+    catch (\Exception $e) {
+      // Newer version does require a stdClass for some reason.
+      $stdClass_item = new \stdClass();
+      $stdClass_item->id = $entity->id();
+      $this->getDriver()->entityDelete($entity_type, $stdClass_item);
     }
   }
 
@@ -81,8 +103,10 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    *
-   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" elements in the "(?P<region>[^"]*)" region?$/
-   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" element in the "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" elements in
+   *   the "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" element in the
+   *   "(?P<region>[^"]*)" region?$/
    */
   public function iShouldSeeElementsInTheRegion($num, $element, $region) {
     $regionObj = $this->getRegion($region);
@@ -103,8 +127,10 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    *
-   * @Then /^(?:|I )should not see a "(?P<element>[^"]*)" element in the "(?P<region>[^"]*)" region?$/
-   * @Then /^(?:|I )should not see an "(?P<element>[^"]*)" element in the "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should not see a "(?P<element>[^"]*)" element in the
+   *   "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should not see an "(?P<element>[^"]*)" element in the
+   *   "(?P<region>[^"]*)" region?$/
    */
   public function iShouldNotSeeElementsInTheRegion($element, $region) {
     $regionObj = $this->getRegion($region);
@@ -124,7 +150,8 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    *
-   * @Then the element :element should have the attribute :attribute with the value :value
+   * @Then the element :element should have the attribute :attribute with the
+   *   value :value
    */
   public function theElementShouldHaveAttribute($element, $attribute, $value) {
     $this->getMink()
@@ -160,7 +187,8 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
     $element = $this->getSession()->getPage();
     $buttonObj = $element->findButton($button);
     if (empty($buttonObj)) {
-      throw new \Exception(sprintf("The button '%s' was not found on the page %s", $button, $this->getSession()->getCurrentUrl()));
+      throw new \Exception(sprintf("The button '%s' was not found on the page %s", $button, $this->getSession()
+        ->getCurrentUrl()));
     }
 
     return $buttonObj->getAttribute('disabled');
