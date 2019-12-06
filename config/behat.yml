@@ -37,7 +37,7 @@ local:
         - StanfordBehat\DrupalExtension\Context\SwsMinkContext
   extensions:
     DMore\ChromeExtension\Behat\ServiceContainer\ChromeExtension: ~
-    Behat\MinkExtension:
+    Drupal\MinkExtension:
       browser_name: chrome
       javascript_session: selenium2
       # configure the base url for your site
