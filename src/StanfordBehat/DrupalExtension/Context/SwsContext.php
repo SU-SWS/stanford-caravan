@@ -78,17 +78,9 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    * @link https://github.com/jhedstrom/DrupalDriver/blob/4c56f48ebf35646cfe012cad01c5c3405b2273b3/src/Drupal/Driver/DrupalDriver.php#L332
    */
   protected function deleteEntity($entity_type, EntityInterface $entity) {
-    // Different versions of DrupalDriver have different parameter restrictions.
-    try {
-      // Older version doesn't require a stdClass object.
-      $this->getDriver()->entityDelete($entity_type, $entity);
-    }
-    catch (\Exception $e) {
-      // Newer version does require a stdClass for some reason.
-      $stdClass_item = new \stdClass();
-      $stdClass_item->id = $entity->id();
-      $this->getDriver()->entityDelete($entity_type, $stdClass_item);
-    }
+    $stdClass_item = new \stdClass();
+    $stdClass_item->id = $entity->id();
+    $this->getDriver()->entityDelete($entity_type, $stdClass_item);
   }
 
   /**
@@ -106,8 +98,10 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    *
-   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" elements in the "(?P<region>[^"]*)" region?$/
-   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" element in the "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" elements in
+   *   the "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should see (?P<num>\d+) "(?P<element>[^"]*)" element in the
+   *   "(?P<region>[^"]*)" region?$/
    */
   public function iShouldSeeElementsInTheRegion($num, $element, $region) {
     $regionObj = $this->getRegion($region);
@@ -128,8 +122,10 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    *
-   * @Then /^(?:|I )should not see a "(?P<element>[^"]*)" element in the "(?P<region>[^"]*)" region?$/
-   * @Then /^(?:|I )should not see an "(?P<element>[^"]*)" element in the "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should not see a "(?P<element>[^"]*)" element in the
+   *   "(?P<region>[^"]*)" region?$/
+   * @Then /^(?:|I )should not see an "(?P<element>[^"]*)" element in the
+   *   "(?P<region>[^"]*)" region?$/
    */
   public function iShouldNotSeeElementsInTheRegion($element, $region) {
     $regionObj = $this->getRegion($region);
