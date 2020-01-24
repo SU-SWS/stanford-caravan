@@ -33,6 +33,7 @@ local:
         - Drupal\DrupalExtension\Context\MessageContext
         - Drupal\DrupalExtension\Context\DrushContext
         - Drupal\DrupalExtension\Context\ConfigContext
+        - miiimooo\BehatTools\Context\ParagraphsContext
         - StanfordBehat\DrupalExtension\Context\SwsContext
         - StanfordBehat\DrupalExtension\Context\SwsMinkContext
   extensions:
