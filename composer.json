@@ -8,9 +8,16 @@
             "email": "pookmish@stanford.edu"
         }
     ],
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "git@github.com:pookmish/behat-tools.git"
+        }
+    ],
     "require": {
         "consolidation/robo": "^1.4",
-        "boedah/robo-drush": "^4.2"
+        "boedah/robo-drush": "^4.2",
+        "miiimooo/behat-tools": "dev-master"
     },
     "bin": [
         "sws-caravan"
