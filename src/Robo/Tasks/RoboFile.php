@@ -81,6 +81,10 @@ class RoboFile extends Tasks {
         ->option('coverage-clover', "$html_path/artifacts/phpunit/coverage/clover.xml");
 
       $this->fixupPhpunitConfig("$html_path/web/core/phpunit.xml", $extension_type, $extension_name);
+
+      if (file_exists("$html_path/vendor/bin/pcov")) {
+        $this->taskExec('vendor/bin/pcov clobber')->dir($html_path)->run();
+      }
     }
     $result = $test->option('log-junit', "$html_path/artifacts/phpunit/results.xml")
       ->run();
@@ -174,7 +178,7 @@ class RoboFile extends Tasks {
     exec("find $dir -type f -name 'field.storage.*'", $files);
     foreach ($files as $file) {
       $filename = basename($file);
-      list(, , $entity_type, $field_name,) = explode('.', $filename);
+      [, , $entity_type, $field_name,] = explode('.', $filename);
       if (strlen("{$entity_type}_revision__$field_name") >= 48) {
         $count = 48 - strlen("{$entity_type}_revision__");
         $errors[] = "$filename field name is too long. Keep the field name under $count characters on '$entity_type' entities.";
