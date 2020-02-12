@@ -265,4 +265,29 @@ class SwsMinkContext extends RawMinkContext {
     return file_exists($path) ? $path : FALSE;
   }
 
+  /**
+   * @when /^(?:|I )confirm the popup$/
+   */
+  public function confirmPopup() {
+    $this->getSession()->getDriver()->getWebDriverSession()->accept_alert();
+  }
+
+  /**
+   * @when /^(?:|I )cancel the popup$/
+   */
+  public function cancelPopup() {
+    $this->getSession()->getDriver()->getWebDriverSession()->dismiss_alert();
+  }
+
+  /**
+   * @When /^(?:|I )should see "([^"]*)" in popup$/
+   *
+   * @param string $message The message.
+   *
+   * @return bool
+   */
+  public function assertPopupMessage($message) {
+    return $message == $this->getSession()->getDriver()->getWebDriverSession()->getAlert_text();
+  }
+
 }
