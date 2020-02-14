@@ -290,4 +290,26 @@ class SwsMinkContext extends RawMinkContext {
     return $message == $this->getSession()->getDriver()->getWebDriverSession()->getAlert_text();
   }
 
+  /**
+   * Checks, that at least (?P<num>\d+) CSS elements exist on the page
+   * Example: Then I should see 5 or more "div" elements
+   * Example: And I should see 5 or more "div" elements
+   *
+   * @Then /^(?:|I )should see (?P<num>\d+) or more "(?P<element>[^"]*)" elements?$/
+   */
+  public function assertNumElements($num, $element) {
+    $nodes = $this->getSession()->getPage()->findAll('css', $element);
+
+    $message = sprintf(
+      '%d "%s" found on the page, but should be more than %d.',
+      count($nodes),
+      $element,
+      $num
+    );
+
+    if (intval($num) >= count($nodes)) {
+      throw new ExpectationException($message, $this->getSession()->getDriver());
+    }
+  }
+
 }
