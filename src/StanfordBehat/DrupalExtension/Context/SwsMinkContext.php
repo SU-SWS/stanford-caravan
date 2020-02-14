@@ -307,7 +307,7 @@ class SwsMinkContext extends RawMinkContext {
       $num
     );
 
-    if (intval($num) >= count($nodes)) {
+    if (intval($num) < count($nodes)) {
       throw new ExpectationException($message, $this->getSession()->getDriver());
     }
   }
