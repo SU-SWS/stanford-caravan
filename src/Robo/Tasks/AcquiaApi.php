@@ -15,15 +15,11 @@ use Robo\Tasks;
 class AcquiaApi extends Tasks {
 
   /**
-   * Keyed array of environment IDs.
+   * Acquia application uuid.
    *
-   * Keys should be the environment and the values should be the UUID of the
-   * environment on Acquia hosting. The key 'appId' should be added to identify
-   * the Acquia cloud application.
-   *
-   * @var array
+   * @var string
    */
-  protected $envIds = [];
+  protected $appId;
 
   /**
    * Acquia API Key.
@@ -40,6 +36,13 @@ class AcquiaApi extends Tasks {
   protected $secret;
 
   /**
+   * Data of all available environments on the application.
+   *
+   * @var array
+   */
+  protected $environments = [];
+
+  /**
    * AcquiaApi constructor.
    *
    * @param array $env_ids
@@ -49,22 +52,27 @@ class AcquiaApi extends Tasks {
    * @param string $apiSecret
    *   Acquia API Secret.
    */
-  public function __construct(array $env_ids, $apiKey = '', $apiSecret = '') {
-    $this->envIds = $env_ids;
+  public function __construct($appId, $apiKey, $apiSecret) {
+    assert(!empty($appId));
+    assert(!empty($apiKey));
+    assert(!empty($apiSecret));
 
+    $this->appId = $appId;
     $this->key = $apiKey;
-    if (!$this->key && isset($_ENV['ACP_KEY'])) {
-      $this->key = $_ENV['ACP_KEY'];
-    }
-
     $this->secret = $apiSecret;
-    if (!$this->secret && isset($_ENV['ACP_SECRET'])) {
-      $this->secret = $_ENV['ACP_SECRET'];
-    }
+
+    $environments = $this->getEnvironments();
+    $this->environments = $environments['_embedded']['items'];
   }
 
+  /**
+   * Get data of all environments on the application.
+   *
+   * @return bool|string
+   *   API Response.
+   */
   public function getEnvironments() {
-    return $this->callAcquiaApi("/applications/{$this->envIds['appId']}/environments");
+    return $this->callAcquiaApi("/applications/{$this->appId}/environments");
   }
 
   /**
@@ -79,7 +87,8 @@ class AcquiaApi extends Tasks {
    *   API Response.
    */
   public function addDomain($environment, $domain) {
-    return $this->callAcquiaApi("/environments/{$this->envIds[$environment]}/domains", 'POST', ['json' => ['hostname' => $domain]]);
+    $id = $this->getEnvironmentId($environment);
+    return $this->callAcquiaApi("/environments/{$id}/domains", 'POST', ['json' => ['hostname' => $domain]]);
   }
 
   /**
@@ -92,7 +101,8 @@ class AcquiaApi extends Tasks {
    *   API Response.
    */
   public function getDatabases($environment) {
-    return $this->callAcquiaApi("/environments/{$this->envIds[$environment]}/databases");
+    $id = $this->getEnvironmentId($environment);
+    return $this->callAcquiaApi("/environments/{$id}/databases");
   }
 
   /**
@@ -107,7 +117,8 @@ class AcquiaApi extends Tasks {
    *   API Response.
    */
   public function getDatabaseBackups($environment, $databaseName) {
-    return $this->callAcquiaApi("/environments/{$this->envIds[$environment]}/databases/$databaseName/backups");
+    $id = $this->getEnvironmentId($environment);
+    return $this->callAcquiaApi("/environments/{$id}/databases/$databaseName/backups");
   }
 
   /**
@@ -124,7 +135,8 @@ class AcquiaApi extends Tasks {
    *   API Response.
    */
   public function deleteDatabaseBackup($environment, $databaseName, $backupId) {
-    return $this->callAcquiaApi("/environments/{$this->envIds[$environment]}/databases/$databaseName/backups/$backupId", 'DELETE');
+    $id = $this->getEnvironmentId($environment);
+    return $this->callAcquiaApi("/environments/{$id}/databases/$databaseName/backups/$backupId", 'DELETE');
   }
 
   /**
@@ -137,7 +149,7 @@ class AcquiaApi extends Tasks {
    *   API Response.
    */
   public function addDatabase($db_name) {
-    return $this->callAcquiaApi("/applications/{$this->envIds['appId']}/databases", 'POST', ['json' => ['name' => $db_name]]);
+    return $this->callAcquiaApi("/applications/{$this->appId}/databases", 'POST', ['json' => ['name' => $db_name]]);
   }
 
   /**
@@ -170,7 +182,8 @@ class AcquiaApi extends Tasks {
         'label' => $label,
       ],
     ];
-    return $this->callAcquiaApi("/environments/{$this->envIds[$environment]}/ssl/certificates", 'POST', $data);
+    $id = $this->getEnvironmentId($environment);
+    return $this->callAcquiaApi("/environments/{$id}/ssl/certificates", 'POST', $data);
   }
 
   /**
@@ -185,7 +198,8 @@ class AcquiaApi extends Tasks {
    *   API Response.
    */
   public function activateCert($environment, $certId) {
-    return $this->callAcquiaApi("/environments/{$this->envIds[$environment]}/ssl/certificates/{$certId}/actions/activate", 'POST');
+    $id = $this->getEnvironmentId($environment);
+    return $this->callAcquiaApi("/environments/{$id}/ssl/certificates/{$certId}/actions/activate", 'POST');
   }
 
   /**
@@ -200,7 +214,8 @@ class AcquiaApi extends Tasks {
    *   API Response.
    */
   public function removeCert($environment, $certId) {
-    return $this->callAcquiaApi("/environments/{$this->envIds[$environment]}/ssl/certificates/{$certId}", 'DELETE');
+    $id = $this->getEnvironmentId($environment);
+    return $this->callAcquiaApi("/environments/{$id}/ssl/certificates/{$certId}", 'DELETE');
   }
 
   /**
@@ -213,10 +228,8 @@ class AcquiaApi extends Tasks {
    *   API Response.
    */
   public function getCerts($environment) {
-    if ($response = $this->callAcquiaApi("/environments/{$this->envIds[$environment]}/ssl/certificates")) {
-      return json_decode($response, TRUE);
-    }
-    return FALSE;
+    $id = $this->getEnvironmentId($environment);
+    return $response = $this->callAcquiaApi("/environments/{$id}/ssl/certificates");
   }
 
   /**
@@ -231,7 +244,8 @@ class AcquiaApi extends Tasks {
    *   API Response.
    */
   public function deployCode($environment, $reference) {
-    return $this->callAcquiaApi("/environments/{$this->envIds[$environment]}/code/actions/switch", 'POST', ['json' => ['name' => $reference]]);
+    $id = $this->getEnvironmentId($environment);
+    return $this->callAcquiaApi("/environments/{$id}/code/actions/switch", 'POST', ['json' => ['name' => $reference]]);
   }
 
   /**
@@ -275,6 +289,23 @@ class AcquiaApi extends Tasks {
     $body = (string) $response->getBody();
 
     return json_decode($body, TRUE) ?: $body;
+  }
+
+  /**
+   * Get the environment UUID from the environment name.
+   *
+   * @param string $environment_name
+   *   Machine name like `dev`, `test`, `ode123`.
+   *
+   * @return string
+   *   Acquia UUID of the environment.
+   */
+  protected function getEnvironmentId($environment_name) {
+    foreach ($this->environments as $environment) {
+      if ($environment['name'] == $environment_name) {
+        return $environment['id'];
+      }
+    }
   }
 
 }
