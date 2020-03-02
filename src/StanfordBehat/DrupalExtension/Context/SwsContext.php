@@ -227,8 +227,7 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    * @Then /^the response header "([^"]*)" should contain "([^"]*)"$/
    */
   public function theResponseHeaderShouldContain($arg1, $arg2) {
-    $mink = $this->minkContext;
-    $headers = $mink->getSession()->getResponseHeaders();
+    $headers = $this->getSession()->getResponseHeaders();
     if (!isset($headers[$arg1])) {
       throw new Exception('The HTTP header "' . $arg1 . '" does not appear to be set.');
     }
@@ -241,8 +240,7 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    * @Then /^the response header should not have "([^"]*)"$/
    */
   public function theResponseHeaderShouldNotHave($arg1) {
-    $mink = $this->minkContext;
-    $headers = $mink->getSession()->getResponseHeaders();
+    $headers = $this->getSession()->getResponseHeaders();
 
     if (isset($headers[$arg1])) {
       throw new Exception('The HTTP header "' . $arg1 . '" is set to: ' . array_pop($headers[$arg1]) . '.');
