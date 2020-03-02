@@ -8,6 +8,7 @@ use Drupal\DrupalExtension\Context\RawDrupalContext;
 use Drupal\DrupalExtension\Context\DrushContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Drupal\Core\Entity\EntityInterface;
+use Exception;
 
 /**
  * FeatureContext class defines custom step definitions for Behat.
@@ -221,5 +222,33 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
     }
     $field->setValue($value);
   }
+
+  /**
+   * @Then /^the response header "([^"]*)" should contain "([^"]*)"$/
+   */
+  public function theResponseHeaderShouldContain($arg1, $arg2) {
+    $mink = $this->minkContext;
+    $headers = $mink->getSession()->getResponseHeaders();
+    if (!isset($headers[$arg1])) {
+      throw new Exception('The HTTP header "' . $arg1 . '" does not appear to be set.');
+    }
+    if (!in_array($arg2, $headers[$arg1])) {
+      throw new Exception('The HTTP header "' . $arg1 . '" did not contain "' . $arg2 . '"');
+    }
+  }
+
+  /**
+   * @Then /^the response header should not have "([^"]*)"$/
+   */
+  public function theResponseHeaderShouldNotHave($arg1) {
+    $mink = $this->minkContext;
+    $headers = $mink->getSession()->getResponseHeaders();
+
+    if (isset($headers[$arg1])) {
+      throw new Exception('The HTTP header "' . $arg1 . '" is set to: ' . array_pop($headers[$arg1]) . '.');
+    }
+
+  }
+
 
 }
