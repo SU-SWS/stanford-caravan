@@ -249,24 +249,11 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   /**
-   * @Given I am logged in as User One
-   */
-  public function iAmLoggedInAsUserOne() {
-    // Check if logged in.
-    if ($this->loggedIn()) {
-      $this->logout();
-    }
-    $url = $this->getDriver()->drush('user-login 1 --browser=0');
-    $this->visitPath($url);
-  }
-
-  /**
    * @Given /^the "([^"]*)" module is uninstalled/
    */
   public function theModuleIsUninstalled($arg1) {
-//    $result = $this->getDriver()->drush("pm-uninstall -y " . $arg1);
-    $result = new DrushContext();
-    $result->assertDrushCommand("pm-uninstall -y " . $arg1);
+    $command = "pm-uninstall -y " . $arg1;
+    $result = $this->getDriver("drush")->$command();
     if (preg_match('/\[error\]/', $result)) {
       throw new Exception($result);
     }
