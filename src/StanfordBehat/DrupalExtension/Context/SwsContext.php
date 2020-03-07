@@ -248,5 +248,14 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
 
   }
 
-
+  /**
+   * @Given /^the "([^"]*)" module is uninstalled/
+   */
+  public function theModuleIsUninstalled($arg1) {
+    $command = "pm-uninstall -y " . $arg1;
+    $result = $this->getDriver("drush")->$command();
+    if (preg_match('/\[error\]/', $result)) {
+      throw new Exception($result);
+    }
+  }
 }
