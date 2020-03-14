@@ -245,7 +245,32 @@ class AcquiaApi extends Tasks {
    */
   public function deployCode($environment, $reference) {
     $id = $this->getEnvironmentId($environment);
-    return $this->callAcquiaApi("/environments/{$id}/code/actions/switch", 'POST', ['json' => ['name' => $reference]]);
+    return $this->callAcquiaApi("/environments/{$id}/code/actions/switch", 'POST', ['json' => ['branch' => $reference]]);
+  }
+
+  /**
+   * Create a cron job on Acquia environment.
+   *
+   * @param string $environment
+   *   Environment to effect.
+   * @param string $command
+   *   Cron command.
+   * @param $label
+   *   Cron label.
+   * @param string $frequency
+   *   Cron notation.
+   *
+   * @return bool|string
+   *   API Response.
+   */
+  public function createCronJob($environment, $command, $label, $frequency = '0 */6 * * *') {
+    $id = $this->getEnvironmentId($environment);
+    $cron_data = [
+      'command' => $command,
+      'frequency' => $frequency,
+      'label' => $label,
+    ];
+    return $this->callAcquiaApi("/environments/{$id}/crons", 'POST', ['json' => $cron_data]);
   }
 
   /**
