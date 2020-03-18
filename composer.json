@@ -17,7 +17,8 @@
     "require": {
         "consolidation/robo": "^1.4",
         "boedah/robo-drush": "^4.2",
-        "miiimooo/behat-tools": "dev-master"
+        "miiimooo/behat-tools": "dev-master",
+        "fzaninotto/faker": "^1.9"
     },
     "bin": [
         "sws-caravan"
