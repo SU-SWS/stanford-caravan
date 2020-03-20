@@ -179,7 +179,7 @@ class SwsMinkContext extends RawMinkContext {
       sleep(1);
     }
 
-    throw new ElementNotVisible("The element is$not available $last_message");
+    throw new ElementNotVisible("The element is $not available $last_message");
   }
 
   /**
