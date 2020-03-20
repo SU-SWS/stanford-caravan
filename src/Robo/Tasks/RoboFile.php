@@ -94,7 +94,7 @@ class RoboFile extends Tasks {
    */
   public function checkCoverageReport($report, $required_coverage) {
     if (!file_exists($report)) {
-      $this->printTaskInfo("No coverage report available.");
+      $this->say("<info>No coverage report available.</info>");
       return;
     }
 
