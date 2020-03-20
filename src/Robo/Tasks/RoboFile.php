@@ -2,6 +2,8 @@
 
 namespace StanfordCaravan\Robo\Tasks;
 
+use Robo\Exception\AbortTasksException;
+use Robo\Result;
 use Robo\Tasks;
 use Boedah\Robo\Task\Drush\loadTasks as drushTasks;
 use StanfordCaravan\CaravanTrait;
@@ -29,16 +31,6 @@ class RoboFile extends Tasks {
    * RoboFile constructor.
    */
   public function __construct() {
-    $this->toolDir = dirname(__FILE__, 4);
-  }
-
-  /**
-   * @command test-stuff
-   */
-  public function testStuff() {
-    $this->taskDrupalSetup('/var/www/deleteme')
-      ->testExtension('/var/www/cardinalsites/docroot/profiles/custom/stanford_profile')
-      ->run();
   }
 
   /**
@@ -66,6 +58,7 @@ class RoboFile extends Tasks {
 
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
     $this->lintPhp($extension_dir);
+    $this->checkFileNameLengths($extension_dir);
 
     if (empty($this->rglob("$extension_dir/*Test.php"))) {
       $this->say('Nothing to test');
@@ -75,13 +68,15 @@ class RoboFile extends Tasks {
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
 
-    $tasks[] = $this->taskDrupalSetup($html_path)
-      ->testExtension($extension_dir);
+//    $tasks[] = $this->taskDrupalSetup($html_path)
+//      ->testExtension($extension_dir);
 
     $tasks[] = $this->taskSuPhpUnit()
       ->dir("$html_path/web")
       ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name")
       ->withCoverage($options['with-coverage'])
+      ->coverageRequired($options['coverage-required'])
+      ->uploadToCodeClimate($options['with-coverage'])
       ->reportDir("$html_path/artifacts")
       ->extensionType($extension_type)
       ->extensionName($extension_name);
@@ -92,54 +87,38 @@ class RoboFile extends Tasks {
 
     $test_result = $this->collectionBuilder()->addTaskList($tasks)->run();
 
-    $errors = [];
     if ($options['with-coverage']) {
-      $errors[] = $this->checkCoverageReport("$html_path/artifacts/phpunit/coverage/xml/index.xml", $options['coverage-required']);
-      $this->uploadCoverageCodeClimate("$html_path/artifacts/phpunit/coverage/clover.xml", "$html_path/web/{$extension_type}s/custom/$extension_name");
-    }
-
-    $errors[] = $this->checkFileNameLengths($extension_dir);
-    if (array_filter($errors)) {
-      throw new \Exception(implode(PHP_EOL, array_filter($errors)));
+      $this->checkCoverageReport("$html_path/artifacts/phpunit/coverage/xml/index.xml", $options['coverage-required']);
     }
 
     return $test_result;
   }
 
   /**
-   * @param $clover_coverage
+   * Check if the code coverage is sufficient.
+   *
+   * @param string $report
+   *   Path to coverage report.
+   * @param int $required_coverage
+   *   Required coverage percent.
    */
-  protected function uploadCoverageCodeClimate($clover_coverage, $extension_dir) {
-    if (!file_exists($clover_coverage)) {
-      $this->say('No coverage to upload to code climate.');
+  public function checkCoverageReport($report, $required_coverage) {
+    if (!file_exists($report)) {
+      $this->printTaskInfo("No coverage report available.");
       return;
     }
 
-    if (!isset($_ENV['CC_TEST_REPORTER_ID'])) {
-      $this->say('To enable codeclimate coverage uploads, please set the "CC_TEST_REPORTER_ID" environment variable to enable this feature.');
-      $this->say('This can be found on the codeclimate repository settings page.');
-      return;
+    $dom = new \DOMDocument();
+    libxml_use_internal_errors(TRUE);
+    $dom->loadHTML(file_get_contents($report));
+    $xpath = new \DOMXPath($dom);
+    $total_coverage = $xpath->query("//directory[@name='/']/totals/lines/@percent")
+      ->item(0)->nodeValue;
+
+    if ((float) $total_coverage < (float) $required_coverage) {
+      throw new AbortTasksException("Code coverage is not sufficient at $total_coverage%. $required_coverage% is required.");
     }
-
-    $get_report_tool = $this->taskExec("curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter")
-      ->dir($extension_dir);
-    $executable_tool = $this->taskExec(' chmod +x ./cc-test-reporter')
-      ->dir($extension_dir);
-
-    $copy_clover = $this->taskFilesystemStack()
-      ->copy($clover_coverage, "$extension_dir/clover.xml");
-
-    $upload_coverage = $this->taskExec("./cc-test-reporter after-build -t clover")
-      ->dir($extension_dir);
-
-    $tasks = $this->collectionBuilder();
-    $tasks->addTaskList([
-      $get_report_tool,
-      $executable_tool,
-      $copy_clover,
-      $upload_coverage,
-    ]);
-    $tasks->run();
+    $this->say("<info>Code coverage at $total_coverage%.</info>");
   }
 
   /**
@@ -189,29 +168,9 @@ class RoboFile extends Tasks {
         $errors[] = "$filename field name is too long. Keep the field name under $count characters on '$entity_type' entities.";
       }
     }
-    return implode(PHP_EOL, $errors);
-  }
-
-  /**
-   * Check if the code coverage is sufficient.
-   *
-   * @param string $report
-   *   Path to coverage report.
-   */
-  public function checkCoverageReport($report, $required_coverage) {
-    if (!file_exists($report)) {
-      return;
+    if (!empty($errors)) {
+      throw new AbortTasksException(implode(PHP_EOL, $errors));
     }
-    $dom = new \DOMDocument();
-    libxml_use_internal_errors(TRUE);
-    $dom->loadHTML(file_get_contents($report));
-    $xpath = new \DOMXPath($dom);
-    $total_coverage = $xpath->query("//directory[@name='/']/totals/lines/@percent")
-      ->item(0)->nodeValue;
-    if ((float) $total_coverage < (float) $required_coverage) {
-      return "Code coverage is not sufficient at $total_coverage%. $required_coverage% is required.";
-    }
-    $this->yell("Code coverage at $total_coverage%.");
   }
 
   /**
@@ -247,15 +206,17 @@ class RoboFile extends Tasks {
     $profile = $extension_type == 'profile' ? $extension_name : $options['profile'];
 
     $tasks[] = $this->taskWriteToFile("$html_path/web/sites/default/settings.php")
-      ->textFromFile("{$this->toolDir}/config/circleci.settings.php");
+      ->textFromFile("{$this->toolDir()}/config/circleci.settings.php");
 
     $tasks[] = $this->taskDrushStack("vendor/bin/drush")
       ->dir($html_path)
       ->siteInstall($profile);
 
-    $tasks[] = $this->taskDrushStack("vendor/bin/drush")
-      ->dir($html_path)
-      ->drush("pm:enable $extension_name");
+    if ($profile != $extension_name) {
+      $tasks[] = $this->taskDrushStack("vendor/bin/drush")
+        ->dir($html_path)
+        ->drush("pm:enable $extension_name");
+    }
 
     $tasks[] = $this->taskDrushStack("vendor/bin/drush")
       ->dir($html_path)
@@ -267,7 +228,7 @@ class RoboFile extends Tasks {
 
     $tasks[] = $this->taskBehat('vendor/bin/behat')
       ->dir($html_path)
-      ->config("{$this->toolDir}/config/behat.yml")
+      ->config("{$this->toolDir()}/config/behat.yml")
       ->arg("$html_path/web/{$extension_type}s/custom/$extension_name")
       ->option('profile', 'local')
       ->option('strict')

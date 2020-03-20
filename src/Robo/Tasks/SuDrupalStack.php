@@ -2,18 +2,11 @@
 
 namespace StanfordCaravan\Robo\Tasks;
 
-use League\Container\ContainerAwareInterface;
 use League\Container\ContainerAwareTrait;
-use Robo\Common\BuilderAwareTrait;
-use Robo\Common\CommandArguments;
-use Robo\Common\IO;
 use Robo\Contract\BuilderAwareInterface;
-use Robo\Contract\TaskInterface;
 use Robo\LoadAllTasks;
 use Robo\Result;
 use Robo\Task\BaseTask;
-use Robo\Task\CommandStack;
-use Robo\Task\Composer\loadTasks;
 use StanfordCaravan\CaravanTrait;
 
 /**
@@ -49,7 +42,6 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
   protected $keepMedia = FALSE;
 
   function __construct($dir) {
-    $this->toolDir = dirname(__FILE__, 4);
     $this->path = $dir;
   }
 
@@ -72,7 +64,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
   }
 
   /**
-   * @return \Robo\Result|void
+   * @return \Robo\Result
    */
   function run() {
     $this->taskExec('dockerize -wait tcp://localhost:3306 -timeout 1m')->run();
@@ -94,23 +86,18 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     $tasks[] = $this->taskComposerRequire()
       ->dir($this->path)
       ->arg('drupal/core-dev')
+      ->dev()
       ->option('no-update');
 
     $tasks[] = $this->taskComposerRequire()
       ->dir($this->path)
       ->arg('wikimedia/composer-merge-plugin')
-      ->dev()
       ->option('no-update');
 
     $tasks[] = $this->taskComposerUpdate()->dir($this->path);
 
-    // Symlink docroot directory to web directory.
-    $tasks[] = $this->taskExec('ln')
-      ->dir($this->path)
-      ->arg("{$this->path}/web")
-      ->arg('docroot')
-      ->option('symbolic');
-
+    $tasks[] = $this->taskFilesystemStack()
+      ->symlink("{$this->path}/web", "{$this->path}/docroot");
     if ($this->extensionDir) {
       $extension_type = $this->getExtensionType($this->extensionDir);
       $extension_name = $this->getExtensionName($this->extensionDir);
@@ -142,11 +129,15 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     $this->collectionBuilder()->addTaskList($tasks)->run();
 
     $this->printTaskInfo('Adding composer merge files.');
-    $this->addComposerMergeFile("{$this->toolDir}/config/composer.json", FALSE, TRUE);
+    $this->addComposerMergeFile("{$this->toolDir()}/config/composer.json", FALSE, TRUE);
 
     if ($this->extensionDir) {
       $this->addComposerMergeFile("{$this->path}/web/{$extension_type}s/custom/$extension_name/composer.json", TRUE);
     }
+    $this->taskExec('vendor/bin/pcov')
+      ->dir($this->path)
+      ->arg('clobber')
+      ->run();
     return new Result($this, 0);
   }
 
