@@ -10,7 +10,7 @@ use Robo\Task\BaseTask;
 use StanfordCaravan\CaravanTrait;
 
 /**
- * Class SuDrupalStack
+ * Class SuDrupalStack.
  *
  * @package StanfordCaravan\Robo\Tasks
  */
@@ -41,6 +41,12 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    */
   protected $keepMedia = FALSE;
 
+  /**
+   * SuDrupalStack constructor.
+   *
+   * @param string $dir
+   *   Directory to install drupal.
+   */
   function __construct($dir) {
     $this->path = $dir;
   }
@@ -58,59 +64,64 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     return $this;
   }
 
-  function keepCoreMedia($keep = FALSE) {
+  /**
+   * When building the drupal directory, keep the media config files.
+   *
+   * @param bool $keep
+   *   Keep the configs from standard profile.
+   *
+   * @return $this
+   */
+  function keepCoreMedia($keep = TRUE) {
     $this->keepMedia = $keep;
     return $this;
   }
 
   /**
+   * Execute the tasks.
+   *
    * @return \Robo\Result
+   *   Result of the tasks.
    */
   function run() {
+    // CircleCI wait for database and reload apache.
     $this->taskExec('dockerize -wait tcp://localhost:3306 -timeout 1m')->run();
     $this->taskExec('apachectl stop; apachectl start')->run();
 
     $tasks = [];
 
-    // Start fresh.
+    // Start fresh with an empty directory.
     if (file_exists($this->path)) {
       $tasks[] = $this->taskFilesystemStack()->remove($this->path);
     }
 
+    // Create the project.
+    // @link https://www.drupal.org/docs/develop/using-composer/using-composer-to-install-drupal-and-manage-dependencies
     $tasks[] = $this->taskComposerCreateProject()
       ->arg('drupal/recommended-project')
       ->arg($this->path)
       ->option('no-interaction')
       ->option('no-install');
 
+    // Add some dependencies.
     $tasks[] = $this->taskComposerRequire()
       ->dir($this->path)
       ->arg('drupal/core-dev')
-      ->dev()
-      ->option('no-update');
-
-    $tasks[] = $this->taskComposerRequire()
-      ->dir($this->path)
       ->arg('wikimedia/composer-merge-plugin')
-      ->option('no-update');
+      ->dev();
 
-    $tasks[] = $this->taskComposerUpdate()->dir($this->path);
-
+    // Symlink `docroot` to the `web` directory for browser tests.
     $tasks[] = $this->taskFilesystemStack()
       ->symlink("{$this->path}/web", "{$this->path}/docroot");
+
     if ($this->extensionDir) {
       $extension_type = $this->getExtensionType($this->extensionDir);
       $extension_name = $this->getExtensionName($this->extensionDir);
 
       // Create the custom directory if it doesn't already exist.
-      if (!file_exists("{$this->path}/web/{$extension_type}s/custom")) {
-        $tasks[] = $this->taskFilesystemStack()
-          ->mkdir("{$this->path}/web/{$extension_type}s/custom");
-      }
-      // Ensure the extensions's directory is clean first.
-      $tasks[] = $this->taskDeleteDir("{$this->path}/web/{$extension_type}s/custom/$extension_name");
       $tasks[] = $this->taskFilesystemStack()
-        ->mkdir("{$this->path}/web/{$extension_type}s/custom/");
+        ->mkdir("{$this->path}/web/{$extension_type}s/custom");
+
       // Copy the extension into its appropriate path.
       $tasks[] = $this->taskRsync()
         ->fromPath("{$this->extensionDir}/")
@@ -119,6 +130,8 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
         ->option('exclude', 'html');
     }
 
+    // Delete media configs from the standard profile. This keeps from conflicts
+    // with stanford media tests.
     if (!$this->keepMedia) {
       $media_files = glob("$this->path/web/core/profiles/standard/config/optional/*media*");
       foreach ($media_files as $file) {
@@ -134,11 +147,11 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     if ($this->extensionDir) {
       $this->addComposerMergeFile("{$this->path}/web/{$extension_type}s/custom/$extension_name/composer.json", TRUE);
     }
-    $this->taskExec('vendor/bin/pcov')
+
+    return $this->taskExec('vendor/bin/pcov')
       ->dir($this->path)
       ->arg('clobber')
       ->run();
-    return new Result($this, 0);
   }
 
   /**

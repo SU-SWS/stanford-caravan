@@ -21,13 +21,6 @@ class RoboFile extends Tasks {
   use CaravanTrait;
 
   /**
-   * Path to this tool's library root.
-   *
-   * @var string
-   */
-  protected $toolDir;
-
-  /**
    * RoboFile constructor.
    */
   public function __construct() {
@@ -68,15 +61,13 @@ class RoboFile extends Tasks {
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
 
-//    $tasks[] = $this->taskDrupalSetup($html_path)
-//      ->testExtension($extension_dir);
+    $tasks[] = $this->taskDrupalSetup($html_path)
+      ->testExtension($extension_dir);
 
     $tasks[] = $this->taskSuPhpUnit()
       ->dir("$html_path/web")
       ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name")
       ->withCoverage($options['with-coverage'])
-      ->coverageRequired($options['coverage-required'])
-      ->uploadToCodeClimate($options['with-coverage'])
       ->reportDir("$html_path/artifacts")
       ->extensionType($extension_type)
       ->extensionName($extension_name);
@@ -220,11 +211,11 @@ class RoboFile extends Tasks {
 
     $tasks[] = $this->taskDrushStack("vendor/bin/drush")
       ->dir($html_path)
-      ->drush('pmu simplesamlphp_auth');
+      ->drush('pm:uninstall simplesamlphp_auth');
 
     $tasks[] = $this->taskDrushStack("vendor/bin/drush")
       ->dir($html_path)
-      ->drush('cr');
+      ->drush('cache-rebuild');
 
     $tasks[] = $this->taskBehat('vendor/bin/behat')
       ->dir($html_path)
