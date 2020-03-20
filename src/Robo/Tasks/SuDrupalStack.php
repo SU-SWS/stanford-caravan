@@ -89,6 +89,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     $this->taskExec('dockerize -wait tcp://localhost:3306 -timeout 1m')->run();
     $this->taskExec('apachectl stop; apachectl start')->run();
 
+    chdir(dirname($this->path));
     // Start fresh with an empty directory.
     if (file_exists($this->path)) {
       $this->taskFilesystemStack()->remove($this->path)->run();
@@ -97,12 +98,13 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     // Create the project.
     // @link https://www.drupal.org/docs/develop/using-composer/using-composer-to-install-drupal-and-manage-dependencies
     $this->taskComposerCreateProject()
-      ->dir(dirname($this->path))
       ->arg('drupal/recommended-project')
       ->arg($this->path)
       ->option('no-interaction')
       ->option('no-install')
       ->run();
+
+    chdir($this->path);
 
     $extension_type = $this->getExtensionType($this->extensionDir);
     $extension_name = $this->getExtensionName($this->extensionDir);

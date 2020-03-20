@@ -51,7 +51,6 @@ class RoboFile extends Tasks {
     $this->lintPhp($extension_dir);
     $this->checkFileNameLengths($extension_dir);
 
-
     if (empty($this->rglob("$extension_dir/*Test.php"))) {
       $this->say('Nothing to test');
       return;
