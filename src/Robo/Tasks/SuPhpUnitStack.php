@@ -16,7 +16,7 @@ use StanfordCaravan\CaravanTrait;
  *
  * @package StanfordCaravan\Robo\Tasks
  */
-class SuPhpUnit extends BaseTask implements BuilderAwareInterface {
+class SuPhpUnitStack extends BaseTask implements BuilderAwareInterface {
 
   use ContainerAwareTrait;
   use LoadAllTasks;
@@ -65,9 +65,20 @@ class SuPhpUnit extends BaseTask implements BuilderAwareInterface {
   protected $extensionType;
 
   /**
-   * SuPhpUnit constructor.
+   * Path to phpunit executable.
+   *
+   * @var string
    */
-  public function __construct() {
+  protected $phpunitPath;
+
+  /**
+   * SuPhpUnitStack constructor.
+   *
+   * @param string $phpunit_path
+   *   Path to phpunit executable.
+   */
+  public function __construct($phpunit_path) {
+    $this->phpunitPath = $phpunit_path ?: '../vendor/bin/phpunit';
   }
 
   /**
@@ -160,7 +171,7 @@ class SuPhpUnit extends BaseTask implements BuilderAwareInterface {
       ->completionCode([$this, 'fixupPhpunitConfig'])
       ->run();
 
-    $test = $this->taskPhpUnit("../vendor/bin/phpunit")
+    $test = $this->taskPhpUnit($this->phpunitPath)
       ->dir($this->dir)
       ->arg($this->testDir)
       ->option('config', 'core', '=')

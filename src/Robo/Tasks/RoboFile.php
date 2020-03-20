@@ -5,7 +5,6 @@ namespace StanfordCaravan\Robo\Tasks;
 use Robo\Exception\AbortTasksException;
 use Robo\Result;
 use Robo\Tasks;
-use Boedah\Robo\Task\Drush\loadTasks as drushTasks;
 use StanfordCaravan\CaravanTrait;
 use Symfony\Component\Console\Input\InputOption;
 
@@ -16,8 +15,7 @@ use Symfony\Component\Console\Input\InputOption;
  */
 class RoboFile extends Tasks {
 
-  use drushTasks;
-  use SuTasks;
+  use loadTasks;
   use CaravanTrait;
 
   /**
@@ -61,10 +59,10 @@ class RoboFile extends Tasks {
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
 
-    $tasks[] = $this->taskDrupalSetup($html_path)
+    $tasks[] = $this->taskDrupalStack($html_path)
       ->testExtension($extension_dir);
 
-    $tasks[] = $this->taskSuPhpUnit()
+    $tasks[] = $this->taskSuPhpUnitStack()
       ->dir("$html_path/web")
       ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name")
       ->withCoverage($options['with-coverage'])
@@ -188,7 +186,7 @@ class RoboFile extends Tasks {
       return;
     }
 
-    $tasks[] = $this->taskDrupalSetup($html_path)
+    $tasks[] = $this->taskDrupalStack($html_path)
       ->testExtension($extension_dir);
 
     $extension_type = $this->getExtensionType($extension_dir);
