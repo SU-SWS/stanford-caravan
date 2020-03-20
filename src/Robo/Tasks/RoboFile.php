@@ -44,12 +44,13 @@ class RoboFile extends Tasks {
   ]) {
 
     if (empty($options['extension-dir'])) {
-      throw new \Exception('--extension-dir is required');
+      throw new AbortTasksException('--extension-dir is required');
     }
 
-    $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
+    $extension_dir = $options['extension-dir'];
     $this->lintPhp($extension_dir);
     $this->checkFileNameLengths($extension_dir);
+
 
     if (empty($this->rglob("$extension_dir/*Test.php"))) {
       $this->say('Nothing to test');
