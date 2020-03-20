@@ -72,31 +72,20 @@ class RoboFile extends Tasks {
       return;
     }
 
-    $tasks[] = $this->taskDrupalSetup($html_path)
-      ->testExtension($extension_dir);
-
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
 
-    $tasks[] = $this->taskFilesystemStack()
-      ->copy("{$this->toolDir}/config/phpunit.xml", "$html_path/web/core/phpunit.xml", TRUE);
+    $tasks[] = $this->taskDrupalSetup($html_path)
+      ->testExtension($extension_dir);
 
-    $test = $this->taskPhpUnit("../vendor/bin/phpunit")
+    $tasks[] = $this->taskSuPhpUnit()
       ->dir("$html_path/web")
-      ->arg("$html_path/web/{$extension_type}s/custom/$extension_name")
-      ->option('config', 'core', '=')
-      ->option('log-junit', "$html_path/artifacts/phpunit/results.xml");
+      ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name")
+      ->withCoverage($options['with-coverage'])
+      ->reportDir("$html_path/artifacts")
+      ->extensionType($extension_type)
+      ->extensionName($extension_name);
 
-    if ($options['with-coverage']) {
-      $test->option('filter', '/(Unit|Kernel)/', '=')
-        ->option('coverage-html', "$html_path/artifacts/phpunit/coverage/html", '=')
-        ->option('coverage-xml', "$html_path/artifacts/phpunit/coverage/xml", '=')
-        ->option('coverage-clover', "$html_path/artifacts/phpunit/coverage/clover.xml");
-
-      $this->fixupPhpunitConfig("$html_path/web/core/phpunit.xml", $extension_type, $extension_name);
-    }
-
-    $tasks[] = $test;
     $tasks[] = $this->taskExec("$html_path/vendor/bin/drupal-check")
       ->dir("$html_path/web")
       ->arg("$html_path/web/{$extension_type}s/custom/$extension_name");
@@ -223,28 +212,6 @@ class RoboFile extends Tasks {
       return "Code coverage is not sufficient at $total_coverage%. $required_coverage% is required.";
     }
     $this->yell("Code coverage at $total_coverage%.");
-  }
-
-  /**
-   * Modify the PHPUnit to whitelist only the extension being tested.
-   *
-   * @param string $config_path
-   *   Path to the PHPUnit config.
-   * @param string $extension_type
-   *   Drupal extension type.
-   * @param string $extension_name
-   *   Drupal extension name being tested.
-   */
-  protected function fixupPhpunitConfig($config_path, $extension_type, $extension_name) {
-    $dom = new \DOMDocument();
-    $dom->loadXML(file_get_contents($config_path));
-    $directories = $dom->getElementsByTagName('directory');
-    for ($i = 0; $i < $directories->length; $i++) {
-      $directory = $directories->item($i)->nodeValue;
-      $directory = str_replace('modules/custom/*', "{$extension_type}s/custom/$extension_name", $directory);
-      $directories->item($i)->nodeValue = $directory;
-    }
-    file_put_contents($config_path, $dom->saveXML());
   }
 
   /**
