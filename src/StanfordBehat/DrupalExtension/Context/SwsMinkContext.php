@@ -141,7 +141,7 @@ class SwsMinkContext extends RawMinkContext {
   }
 
   /**
-   * Wait up to 5 seconds for an element to be visible.
+   * Wait up to 5 seconds for an element to be no longer present.
    *
    * @Then I wait for element :selector to be gone
    */
