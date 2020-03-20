@@ -5,6 +5,7 @@ namespace StanfordBehat\DrupalExtension\Context;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\Mink\Exception\ExpectationException;
 use Behat\MinkExtension\Context\RawMinkContext;
+use WebDriver\Exception\ElementNotVisible;
 
 /**
  * Javascript related tests.
@@ -140,14 +141,30 @@ class SwsMinkContext extends RawMinkContext {
   }
 
   /**
+   * Wait up to 5 seconds for an element to be visible.
+   *
+   * @Then I wait for element :selector to be gone
+   */
+  public function iWaitForElementGone($selector) {
+    $this->waitForSelector(function ($context, $selector) {
+      $element = $context->getSession()
+        ->getPage()
+        ->find('css', $selector);
+      if (!$element || !$element->isVisible()) {
+        return TRUE;
+      }
+    }, $selector, 2, '');
+  }
+
+  /**
    * @param callable $lambda
    * @param $selector
    * @param int $attempts
    *
    * @return bool
    */
-  protected function waitForSelector(callable $lambda, $selector, $attempts = 30) {
-    $lastErrorMessage = '';
+  protected function waitForSelector(callable $lambda, $selector, $attempts = 30, $not = ' not') {
+    $last_message = '';
 
     for ($i = 0; $i < $attempts; $i++) {
       try {
@@ -162,7 +179,7 @@ class SwsMinkContext extends RawMinkContext {
       sleep(1);
     }
 
-    throw new ElementNotVisible('The element is not available ' . $last_message);
+    throw new ElementNotVisible("The element is$not available $last_message");
   }
 
   /**
@@ -287,7 +304,10 @@ class SwsMinkContext extends RawMinkContext {
    * @return bool
    */
   public function assertPopupMessage($message) {
-    return $message == $this->getSession()->getDriver()->getWebDriverSession()->getAlert_text();
+    return $message == $this->getSession()
+        ->getDriver()
+        ->getWebDriverSession()
+        ->getAlert_text();
   }
 
   /**
@@ -308,7 +328,8 @@ class SwsMinkContext extends RawMinkContext {
     );
 
     if (intval($num) < count($nodes)) {
-      throw new ExpectationException($message, $this->getSession()->getDriver());
+      throw new ExpectationException($message, $this->getSession()
+        ->getDriver());
     }
   }
 
