@@ -153,7 +153,7 @@ class SwsMinkContext extends RawMinkContext {
       if (!$element || !$element->isVisible()) {
         return TRUE;
       }
-    }, $selector, 2, '');
+    }, $selector, 10, '');
   }
 
   /**
