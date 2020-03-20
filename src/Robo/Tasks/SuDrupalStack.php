@@ -159,11 +159,21 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     $composer_path = "{$this->path}/composer.json";
     $composer = json_decode(file_get_contents($composer_path), TRUE);
     $composer_to_add = json_decode(file_get_contents($file_to_merge), TRUE);
-    $composer = self::arrayMergeRecursive($composer, $composer_to_add);
+    foreach (['extra', 'require', 'require-dev', 'config'] as $merge_key) {
+      if (isset($composer[$merge_key]) && isset($composer_to_add[$merge_key])) {
+        $composer[$merge_key] = self::arrayMergeRecursive($composer[$merge_key], $composer_to_add[$merge_key]);
+      }
+    }
+    if (isset($composer_to_add['repositories'])) {
+      foreach ($composer_to_add['repositories'] as $repository) {
+        $composer['repositories'][] = $repository;
+      }
+    }
     file_put_contents($composer_path, json_encode($composer, JSON_PRETTY_PRINT));
   }
 
   /**
+   *
    * @param array $array1
    * @param array $array2
    *
