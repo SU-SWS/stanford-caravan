@@ -136,7 +136,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       ->arg('run')
       ->arg($this->suite)
       ->option('steps')
-      ->option('xml', "{$this->path}/artifacts", '=');
+      ->option('xml', "{$this->path}/artifacts/codeception.xml", '=');
 
     return $this->collectionBuilder()->addTaskList($tasks)->run();
   }
