@@ -177,7 +177,6 @@ class RoboFile extends Tasks {
   public function behat($html_path, $options = [
     'extension-dir' => NULL,
     'profile' => 'standard',
-    'latest-drupal' => FALSE,
   ]) {
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
 
@@ -192,28 +191,15 @@ class RoboFile extends Tasks {
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
 
-    $profile = $extension_type == 'profile' ? $extension_name : $options['profile'];
+    $profile = $options['profile'];
+    $enable_modules = [$extension_name];
 
-    $tasks[] = $this->taskWriteToFile("$html_path/web/sites/default/settings.php")
-      ->textFromFile("{$this->toolDir()}/config/circleci.settings.php");
-
-    $tasks[] = $this->taskDrushStack("vendor/bin/drush")
-      ->dir($html_path)
-      ->siteInstall($profile);
-
-    if ($profile != $extension_name) {
-      $tasks[] = $this->taskDrushStack("vendor/bin/drush")
-        ->dir($html_path)
-        ->drush("pm:enable $extension_name");
+    if ($extension_type == 'profile') {
+      $profile = $extension_name;
+      $enable_modules = [];
     }
 
-    $tasks[] = $this->taskDrushStack("vendor/bin/drush")
-      ->dir($html_path)
-      ->drush('pm:uninstall simplesamlphp_auth');
-
-    $tasks[] = $this->taskDrushStack("vendor/bin/drush")
-      ->dir($html_path)
-      ->drush('cache-rebuild');
+    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules));
 
     $tasks[] = $this->taskBehat('vendor/bin/behat')
       ->dir($html_path)
@@ -224,6 +210,76 @@ class RoboFile extends Tasks {
       ->noInteraction();
 
     return $this->collectionBuilder()->addTaskList($tasks)->run();
+  }
+
+  /**
+   * Install drupal in the given directory with a desired profile.
+   *
+   * @param string $drupal_root
+   *   Drupal web root directory.
+   * @param string $profile
+   *   Profile to install.
+   * @param array $enable_modules
+   *   Array of modules to enable after installation.
+   *
+   * @return \Robo\Result
+   *   Result of the tasks.
+   */
+  protected function installDrupal($drupal_root, $profile, array $enable_modules = [], array $disable_modules = ['simplesamlphp_auth']) {
+    $tasks[] = $this->taskWriteToFile("$drupal_root/sites/default/settings.php")
+      ->textFromFile("{$this->toolDir()}/config/circleci.settings.php");
+
+    $tasks[] = $this->taskDrushStack("../vendor/bin/drush")
+      ->dir($drupal_root)
+      ->siteInstall($profile);
+
+    if ($enable_modules) {
+      $tasks[] = $this->taskDrushStack("../vendor/bin/drush")
+        ->dir($drupal_root)
+        ->drush("pm:enable " . implode(',', $enable_modules));
+    }
+
+    if ($disable_modules) {
+      $tasks[] = $this->taskDrushStack("../vendor/bin/drush")
+        ->dir($drupal_root)
+        ->drush('pm:uninstall ' . implode(',', $disable_modules));
+    }
+
+    $tasks[] = $this->taskDrushStack("../vendor/bin/drush")
+      ->dir($drupal_root)
+      ->drush('cache-rebuild');
+
+    return $tasks;
+  }
+
+  /**
+   * @command codeception
+   */
+  public function codeCeption($html_path, $options = [
+    'extension-dir' => NULL,
+    'profile' => 'standard',
+    'suite' => 'acceptance',
+  ]) {
+    $tasks[] = $this->taskDrupalStack($html_path)
+      ->testExtension($extension_dir);
+
+    $extension_type = $this->getExtensionType($extension_dir);
+    $extension_name = $this->getExtensionName($extension_dir);
+
+    $profile = $options['profile'];
+    $enable_modules = [$extension_name];
+
+    if ($extension_type == 'profile') {
+      $profile = $extension_name;
+      $enable_modules = [];
+    }
+
+    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules));
+    $tasks[] = $this->taskCodeCeptionStack()->suite($optinos['suite']);
+
+    return $this->collectionBuilder()
+      ->addTaskList($tasks)
+      ->run();
   }
 
 }

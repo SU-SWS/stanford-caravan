@@ -37,5 +37,14 @@ trait loadTasks {
     return $this->task(DrushStack::class, $pathToDrush);
   }
 
+  /**
+   * CodeCeption task runner.
+   *
+   * @return \StanfordCaravan\Robo\Tasks\SuCodeCeption
+   */
+  protected function taskCodeCeptionStack() {
+    return $this->task(SuCodeCeption::class);
+  }
+
 }
 
