@@ -142,11 +142,48 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       $remove_task->run();
     }
 
+    $this->requireThisCaravanVersion($this->path);
+
     return $this->taskExec('vendor/bin/pcov')
       ->dir($this->path)
       ->arg('clobber')
       ->run();
 
+  }
+
+  /**
+   * Require the currently running version of caravan for the extensions.
+   *
+   * @param string $dir
+   *   Directory of the composer.json.
+   * @param bool $global
+   *   Check composer global first.
+   */
+  protected function requireThisCaravanVersion($dir) {
+    $versions = $this->taskExec('composer')
+      ->dir($dir)
+      ->arg('global')
+      ->arg('show')
+      ->option('format', 'json', '=')
+      ->option('installed')
+      ->printOutput(FALSE)
+      ->run()
+      ->getMessage();
+    $versions = json_decode($versions, TRUE);
+
+    // Find the caravan package and require that version.
+    foreach ($versions['installed'] as $package) {
+      if ($package['name'] == 'su-sws/stanford-caravan') {
+        $version = substr($package['version'], 0, strpos($package['version'], ' '));
+        $version = $version ?: $package['version'];
+        $version = 'dev-codeception-modules';
+        $this->taskComposerRequire()
+          ->dir($dir)
+          ->arg("su-sws/stanford-caravan:$version")
+          ->run();
+        return;
+      }
+    }
   }
 
   /**
@@ -173,11 +210,15 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
   }
 
   /**
-   *
+   * Merge two arrays recursively
+   * 
    * @param array $array1
+   *   First array to merge.
    * @param array $array2
+   *   Second array to merge.
    *
    * @return array
+   *   Merged array.
    *
    * @link https://stackoverflow.com/questions/25712099/php-multidimensional-array-merge-recursive
    */

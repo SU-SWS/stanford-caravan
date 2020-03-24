@@ -42,8 +42,8 @@ trait loadTasks {
    *
    * @return \StanfordCaravan\Robo\Tasks\SuCodeCeption
    */
-  protected function taskCodeCeptionStack() {
-    return $this->task(SuCodeCeption::class);
+  protected function taskCodeCeptionStack($path = NULL) {
+    return $this->task(SuCodeCeption::class, $path);
   }
 
 }

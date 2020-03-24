@@ -253,32 +253,49 @@ class RoboFile extends Tasks {
   }
 
   /**
+   * Run codeception tests.
+   *
    * @command codeception
+   *
+   * @options extension-dir Path to the the drupal extension to test. (Required)
+   * @options profile Drupal profile to install if different than "Standard".
+   * @options suite Codeception suite to test.
+   * @options test-dir Path within the extension-dir where codeception tests are.
+   * @options domain Change the domain for the tests if needed.
+   *
+   * @param string $html_path
+   *   Path location where to install drupal.
+   *
+   * @link https://codeception.com/quickstart
    */
   public function codeCeption($html_path, $options = [
     'extension-dir' => NULL,
     'profile' => 'standard',
     'suite' => 'acceptance',
+    'test-dir' => 'tests/codeception',
+    'domain' => 'localhost',
   ]) {
+
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
-//    $tasks[] = $this->taskDrupalStack($html_path)
-//      ->testExtension($extension_dir);
+    $tasks[] = $this->taskDrupalStack($html_path)
+      ->testExtension($extension_dir);
 
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);
-//
-//    $profile = $options['profile'];
-//    $enable_modules = [$extension_name];
-//
-//    if ($extension_type == 'profile') {
-//      $profile = $extension_name;
-//      $enable_modules = [];
-//    }
-//
-//    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules));
+
+    $profile = $options['profile'];
+    $enable_modules = [$extension_name];
+
+    if ($extension_type == 'profile') {
+      $profile = $extension_name;
+      $enable_modules = [];
+    }
+
+    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules));
     $tasks[] = $this->taskCodeCeptionStack($html_path)
-      ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name/test/codeception")
-      ->suite($options['suite']);
+      ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name/{$options['test-dir']}")
+      ->suite($options['suite'])
+      ->domain($options['domain']);
 
     return $this->collectionBuilder()
       ->addTaskList($tasks)

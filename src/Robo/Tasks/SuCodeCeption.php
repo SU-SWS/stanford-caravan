@@ -9,11 +9,23 @@ use Robo\Result;
 use Robo\Task\BaseTask;
 use StanfordCaravan\CaravanTrait;
 
+/**
+ * Class SuCodeCeption.
+ *
+ * @package StanfordCaravan\Robo\Tasks
+ */
 class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
 
   use ContainerAwareTrait;
   use LoadAllTasks;
   use CaravanTrait;
+
+  /**
+   * Root path of the composer installation.
+   *
+   * @var string
+   */
+  protected $path;
 
   /**
    * Codeception suite to execute.
@@ -23,6 +35,13 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   protected $suite = 'acceptance';
 
   /**
+   * Domain to run tests on.
+   *
+   * @var string
+   */
+  protected $domain = 'localhost';
+
+  /**
    * Directory where tests are located.
    *
    * @var string
@@ -30,6 +49,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   protected $testDir;
 
   public function __construct($root_path) {
+    $this->path = $root_path;
   }
 
   /**
@@ -53,11 +73,61 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   }
 
   /**
+   * Run the tests on the given domain.
+   *
+   * @param string $domain
+   */
+  public function domain($domain) {
+    $this->domain = $domain;
+  }
+
+  /**
+   * Get the modified configuration for the current suite.
+   * 
+   * @return string
+   *   Yaml formatted configuration.
+   */
+  protected function getSuiteConfig() {
+    $suite_config = file_get_contents("{$this->tooldir()}/config/codeception/{$this->suite}.suite.yml");
+    $suite_config = str_replace('localhost', $this->domain, $suite_config);
+    $suite_config = str_replace('/var/www/html', $this->path, $suite_config);
+    return $suite_config;
+  }
+
+  /**
+   * Run the codeception tests.
+   * 
    * @return \Robo\Result|void
    */
   public function run() {
-    // todo: work this out.
-    return new Result($this, 1);
+    if (!file_exists("{$this->path}/codeception.yml")) {
+      $this->taskComposerRequire()
+        ->dir($this->path)
+        ->arg('codeception/codeception')
+        ->arg('codeception/module-asserts')
+        ->arg('codeception/module-phpbrowser')
+        ->arg('codeception/module-webdriver')
+        ->run();
+      
+      $this->taskExec('vendor/bin/codecept')
+        ->dir($this->path)
+        ->arg('bootstrap')
+        ->run();
+    }
+    file_put_contents("{$this->path}/tests/{$this->suite}.suite.yml", $this->getSuiteConfig());
+
+    $tasks[] = $this->taskRsync()
+      ->fromPath("{$this->testDir}/")
+      ->toPath("{$this->path}/tests/")
+      ->recursive();
+
+    $tasks[] = $this->taskExec('vendor/bin/codecept')
+      ->dir($this->path)
+      ->arg('run')
+      ->arg($this->suite)
+      ->option('steps');
+
+    return $this->collectionBuilder()->addTaskList($tasks)->run();
   }
 
 }
