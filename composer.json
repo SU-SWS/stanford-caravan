@@ -11,7 +11,7 @@
     "repositories": [
         {
             "type": "vcs",
-            "url": "git@github.com:pookmish/behat-tools.git"
+            "url": "https://github.com/pookmish/behat-tools.git"
         }
     ],
     "require": {
