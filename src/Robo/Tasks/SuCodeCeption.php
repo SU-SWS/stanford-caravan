@@ -83,7 +83,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
 
   /**
    * Get the modified configuration for the current suite.
-   * 
+   *
    * @return string
    *   Yaml formatted configuration.
    */
@@ -95,8 +95,17 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   }
 
   /**
+   * Get the codeception configuration from the tool directory.
+   *
+   * @return string
+   */
+  protected function getCodeceptionConfig() {
+    return file_get_contents("{$this->tooldir()}/config/codeception/codeception.yml");
+  }
+
+  /**
    * Run the codeception tests.
-   * 
+   *
    * @return \Robo\Result|void
    */
   public function run() {
@@ -108,13 +117,14 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         ->arg('codeception/module-phpbrowser')
         ->arg('codeception/module-webdriver')
         ->run();
-      
+
       $this->taskExec('vendor/bin/codecept')
         ->dir($this->path)
         ->arg('bootstrap')
         ->run();
     }
     file_put_contents("{$this->path}/tests/{$this->suite}.suite.yml", $this->getSuiteConfig());
+    file_put_contents("{$this->path}/codeception.yml", $this->getCodeceptionConfig());
 
     $tasks[] = $this->taskRsync()
       ->fromPath("{$this->testDir}/")
@@ -125,7 +135,8 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       ->dir($this->path)
       ->arg('run')
       ->arg($this->suite)
-      ->option('steps');
+      ->option('steps')
+      ->option('xml', "{$this->path}/artifacts", '=');
 
     return $this->collectionBuilder()->addTaskList($tasks)->run();
   }
