@@ -143,6 +143,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     }
 
     $this->requireThisCaravanVersion($this->path);
+    $this->taskFilesystemStack()->mkdir("$this->path/artifacts")->run();
 
     return $this->taskExec('vendor/bin/pcov')
       ->dir($this->path)
@@ -211,7 +212,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
   /**
    * Merge two arrays recursively
-   * 
+   *
    * @param array $array1
    *   First array to merge.
    * @param array $array2
