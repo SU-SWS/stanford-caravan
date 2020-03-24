@@ -70,6 +70,8 @@ class RoboFile extends Tasks {
       ->extensionType($extension_type)
       ->extensionName($extension_name);
 
+    $tasks[] = $this->taskFilesystemStack()
+      ->remove("$html_path/web/{$extension_type}s/custom/$extension_name/tests/codeception");
     $tasks[] = $this->taskExec("$html_path/vendor/bin/drupal-check")
       ->dir("$html_path/web")
       ->arg("$html_path/web/{$extension_type}s/custom/$extension_name");
@@ -257,10 +259,12 @@ class RoboFile extends Tasks {
    *
    * @command codeception
    *
-   * @options extension-dir Path to the the drupal extension to test. (Required)
+   * @options extension-dir Path to the the drupal extension to test.
+   *   (Required)
    * @options profile Drupal profile to install if different than "Standard".
    * @options suite Codeception suite to test.
-   * @options test-dir Path within the extension-dir where codeception tests are.
+   * @options test-dir Path within the extension-dir where codeception tests
+   *   are.
    * @options domain Change the domain for the tests if needed.
    *
    * @param string $html_path
