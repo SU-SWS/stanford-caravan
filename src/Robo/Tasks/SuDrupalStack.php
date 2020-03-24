@@ -42,8 +42,6 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    */
   protected $keepMedia = FALSE;
 
-  const VERSION = 1.0;
-
   /**
    * SuDrupalStack constructor.
    *
@@ -92,22 +90,19 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     $this->taskExec('apachectl stop; apachectl start')->run();
 
     chdir(dirname($this->path));
-    // Start fresh with an empty directory if the caravan version has updated.
-    if (
-      !file_exists("{$this->path}/CARAVAN_VERSION") ||
-      self::VERSION > (float) file_get_contents("{$this->path}/CARAVAN_VERSION")
-    ) {
+    // Start fresh with an empty directory.
+    if (file_exists($this->path)) {
       $this->taskFilesystemStack()->remove($this->path)->run();
-
-      // Create the project.
-      // @link https://www.drupal.org/docs/develop/using-composer/using-composer-to-install-drupal-and-manage-dependencies
-      $this->taskComposerCreateProject()
-        ->arg('drupal/recommended-project')
-        ->arg($this->path)
-        ->option('no-interaction')
-        ->option('no-install')
-        ->run();
     }
+
+    // Create the project.
+    // @link https://www.drupal.org/docs/develop/using-composer/using-composer-to-install-drupal-and-manage-dependencies
+    $this->taskComposerCreateProject()
+      ->arg('drupal/recommended-project')
+      ->arg($this->path)
+      ->option('no-interaction')
+      ->option('no-install')
+      ->run();
 
     chdir($this->path);
 
@@ -117,10 +112,6 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     // Symlink `docroot` to the `web` directory for browser tests.
     $this->taskFilesystemStack()
       ->symlink("{$this->path}/web", "{$this->path}/docroot")->run();
-
-    $this->taskFilesystemStack()
-      ->remove("{$this->path}/web/{$extension_type}s/custom/$extension_name")
-      ->run();
 
     // Create the custom directory if it doesn't already exist.
     $this->taskFilesystemStack()
@@ -152,12 +143,12 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     }
 
     $this->requireThisCaravanVersion($this->path);
-    file_put_contents("{$this->path}/CARAVAN_VERSION", self::VERSION);
 
     return $this->taskExec('vendor/bin/pcov')
       ->dir($this->path)
       ->arg('clobber')
       ->run();
+
   }
 
   /**
@@ -220,7 +211,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
   /**
    * Merge two arrays recursively
-   *
+   * 
    * @param array $array1
    *   First array to merge.
    * @param array $array2
