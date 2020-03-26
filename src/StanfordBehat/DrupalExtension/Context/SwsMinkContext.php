@@ -164,7 +164,7 @@ class SwsMinkContext extends RawMinkContext {
    * @param string $selector
    *   Css selector.
    * @param int $attempts
-   *   Number of attempts to try
+   *   Number of attempts to try.
    * @param string $not
    *   Message modifier if a selector exists or not.
    *

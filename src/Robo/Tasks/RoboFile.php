@@ -149,7 +149,7 @@ class RoboFile extends Tasks {
     $files = $this->rglob("$dir/*/field.storage.*");
     foreach ($files as $file) {
       $filename = basename($file);
-      [, , $entity_type, $field_name,] = explode('.', $filename);
+      list(, , $entity_type, $field_name,) = explode('.', $filename);
       if (strlen("{$entity_type}_revision__$field_name") >= 48) {
         $count = 48 - strlen("{$entity_type}_revision__");
         $errors[] = "$filename field name is too long. Keep the field name under $count characters on '$entity_type' entities.";
@@ -225,8 +225,8 @@ class RoboFile extends Tasks {
    * @param array $disable_modules
    *   Which modules to disable after installing drupal.
    *
-   * @return \Robo\Result
-   *   Result of the tasks.
+   * @return array
+   *   Array of tasks to be executed.
    */
   protected function installDrupal($drupal_root, $profile, array $enable_modules = [], array $disable_modules = ['simplesamlphp_auth']) {
     $tasks[] = $this->taskWriteToFile("$drupal_root/sites/default/settings.php")

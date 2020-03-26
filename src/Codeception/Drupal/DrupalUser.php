@@ -32,7 +32,7 @@ class DrupalUser extends Module {
   /**
    * Driver to use.
    *
-   * @var WebDriver|PhpBrowser
+   * @var \WebDriver|PhpBrowser|null
    */
   protected $driver;
 
@@ -43,6 +43,11 @@ class DrupalUser extends Module {
    */
   protected $users;
 
+  /**
+   * Drush config settings.
+   *
+   * @var array
+   */
   protected $drushConfig = [];
 
   /**

@@ -31,6 +31,7 @@ trait loadTasks {
    *   Path to phpunit binary.
    *
    * @return \StanfordCaravan\Robo\Tasks\SuPhpUnitStack
+   *   PHPUnit task execution stack.
    */
   protected function taskSuPhpUnitStack($path = NULL) {
     return $this->task(SuPhpUnitStack::class, $path);
@@ -63,4 +64,3 @@ trait loadTasks {
   }
 
 }
-

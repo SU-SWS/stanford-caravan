@@ -207,7 +207,7 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   /**
-   * Checks if the module is enabled
+   * Checks if the module is enabled.
    *
    * @param string $module
    *   Module name.
@@ -247,7 +247,7 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    * Tests the response headers contains something.
    *
    * @param string $header
-   *   Header key
+   *   Header key.
    * @param string $value
    *   Header value to validate.
    *
@@ -294,4 +294,5 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
       throw new Exception($result);
     }
   }
+
 }
