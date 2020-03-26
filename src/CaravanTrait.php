@@ -2,13 +2,21 @@
 
 namespace StanfordCaravan;
 
+/**
+ * Caravan trait with shared methods.
+ */
 trait CaravanTrait {
 
+  /**
+   * Get the root directory of this package.
+   */
   public function tooldir(){
     return dirname(__FILE__, 2);
   }
 
-
+  /**
+   * Recursively search for files with a given pattern.
+   */
   public function rglob($pattern, $flags = 0) {
     $files = glob($pattern, $flags);
     foreach (glob(dirname($pattern) . '/*', GLOB_ONLYDIR | GLOB_NOSORT) as $dir) {
