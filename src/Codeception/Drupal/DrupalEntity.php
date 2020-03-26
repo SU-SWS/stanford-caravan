@@ -10,16 +10,16 @@ use Codeception\TestCase;
 /**
  * Class DrupalEntity.
  *
- * ### Example
- * #### Example (DrupalEntity)
- *     modules:
- *        - DrupalEntity:
- *          cleanup_test: true
- *          cleanup_failed: false
- *          cleanup_suite: true
- *          route_entities:
- *            - node
- *            - taxonomy_term.
+ * Example to include:
+ * modules:
+ *   enabled:
+ *    - StanfordCaravan\Codeception\Drupal\DrupalEntity:
+ *      cleanup_test: true
+ *      cleanup_failed: false
+ *      cleanup_suite: true
+ *      route_entities:
+ *        - node
+ *        - taxonomy_term.
  *
  * @package Codeception\Module
  */
@@ -150,51 +150,6 @@ class DrupalEntity extends Module {
       $this->fail('Invalid entity type specified: ' . $type);
     }
     $this->entities[$type][] = $id;
-  }
-
-  /**
-   * Gets entity form route.
-   *
-   * @param string $url
-   *   Uri.
-   *
-   * @return bool|\Drupal\Core\Entity\EntityInterface
-   *   Entity or FALSE.
-   */
-  public function getEntityFromUrl($url) {
-    $url = Url::fromUri("internal:" . $url);
-    if ($parameters = $url->getRouteParameters()) {
-      // Determine if the current route represents an entity.
-      foreach ($parameters as $name => $options) {
-        $entity = $url->getRouteParameters();
-        if (in_array($name, $this->_getConfig('route_entities'))) {
-          try {
-            $storage = \Drupal::entityTypeManager()->getStorage($name);
-            $entity = $storage->load($options);
-            if ($entity) {
-              return $entity;
-            }
-          }
-          catch (\Exception $e) {
-            continue;
-          }
-        }
-      }
-    }
-
-    return FALSE;
-  }
-
-  /**
-   * Register test entity by url.
-   *
-   * @param string $url
-   *   Url.
-   */
-  public function registerTestEntityByUrl($url) {
-    if ($entity = $this->getEntityFromUrl($url)) {
-      $this->registerTestEntity($entity->getEntityTypeId(), $entity->id());
-    }
   }
 
 }

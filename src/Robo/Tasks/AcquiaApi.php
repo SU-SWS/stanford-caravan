@@ -67,7 +67,7 @@ class AcquiaApi extends Tasks {
   /**
    * Get data of all environments on the application.
    *
-   * @return bool|string
+   * @return bool|array
    *   API Response.
    */
   public function getEnvironments() {
