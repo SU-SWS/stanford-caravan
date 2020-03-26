@@ -9,13 +9,21 @@ trait CaravanTrait {
 
   /**
    * Get the root directory of this package.
+   *
+   * @return string
+   *   Absolute path to the tool's directory.
    */
-  public function tooldir(){
+  public function tooldir() {
     return dirname(__FILE__, 2);
   }
 
   /**
    * Recursively search for files with a given pattern.
+   *
+   * @param string $pattern
+   *   PHP Glob pattern.
+   * @param int $flags
+   *   PHP Glob flags.
    */
   public function rglob($pattern, $flags = 0) {
     $files = glob($pattern, $flags);

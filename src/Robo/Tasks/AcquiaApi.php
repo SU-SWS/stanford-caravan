@@ -4,7 +4,6 @@ namespace StanfordCaravan\Robo\Tasks;
 
 use GuzzleHttp\Client;
 use League\OAuth2\Client\Provider\GenericProvider;
-use GuzzleHttp\Exception\GuzzleException;
 use Robo\Tasks;
 
 /**
@@ -45,8 +44,8 @@ class AcquiaApi extends Tasks {
   /**
    * AcquiaApi constructor.
    *
-   * @param array $env_ids
-   *   Keyed array of Acquia environment IDS.
+   * @param string $appId
+   *   Acquia application ID.
    * @param string $apiKey
    *   Acquia API Key.
    * @param string $apiSecret
@@ -229,7 +228,7 @@ class AcquiaApi extends Tasks {
    */
   public function getCerts($environment) {
     $id = $this->getEnvironmentId($environment);
-    return $response = $this->callAcquiaApi("/environments/{$id}/ssl/certificates");
+    return $this->callAcquiaApi("/environments/{$id}/ssl/certificates");
   }
 
   /**
@@ -255,7 +254,7 @@ class AcquiaApi extends Tasks {
    *   Environment to effect.
    * @param string $command
    *   Cron command.
-   * @param $label
+   * @param string $label
    *   Cron label.
    * @param string $frequency
    *   Cron notation.

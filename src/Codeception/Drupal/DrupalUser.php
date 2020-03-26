@@ -11,18 +11,19 @@ use StanfordCaravan\Codeception\Drupal\Util\Drush;
 /**
  * Class DrupalUser.
  *
- *  modules:
- *    - StanfordCaravan\Codeception\Drupal\DrupalUser:
- *        default_role: 'authenticated'
- *        driver: 'PhpBrowser'
- *        drush: './vendor/bin/drush'
- *        cleanup_entities:
- *          - media
- *          - file
- *          - paragraph
- *        cleanup_test: false
- *        cleanup_failed: false
- *        cleanup_suite: true
+ * Exmple configuration to include:
+ * modules:
+ *   - StanfordCaravan\Codeception\Drupal\DrupalUser:
+ *       default_role: 'authenticated'
+ *       driver: 'PhpBrowser'
+ *       drush: './vendor/bin/drush'
+ *       cleanup_entities:
+ *         - media
+ *         - file
+ *         - paragraph
+ *       cleanup_test: false
+ *       cleanup_failed: false
+ *       cleanup_suite: true
  *
  * @package Codeception\Module
  */
@@ -59,6 +60,9 @@ class DrupalUser extends Module {
     'cleanup_suite' => TRUE,
   ];
 
+  /**
+   * Codeception DrupalUser constructor.
+   */
   public function __construct(ModuleContainer $moduleContainer, $config = NULL) {
     parent::__construct($moduleContainer, $config);
     $this->drushConfig = $this->getModule(DrupalDrush::class)->_getConfig();

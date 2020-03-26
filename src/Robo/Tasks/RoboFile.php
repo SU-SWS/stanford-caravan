@@ -3,10 +3,8 @@
 namespace StanfordCaravan\Robo\Tasks;
 
 use Robo\Exception\AbortTasksException;
-use Robo\Result;
 use Robo\Tasks;
 use StanfordCaravan\CaravanTrait;
-use Symfony\Component\Console\Input\InputOption;
 
 /**
  * CI/CD tools for running tests against themes, modules, and profiles.
@@ -30,14 +28,15 @@ class RoboFile extends Tasks {
    * @param string $html_path
    *   Path to the drupal project.
    * @param array $options
-   *   Command options
+   *   Command options.
    *
-   * @option extension-dir Path to the Drupal extension.
-   * @option with-coverage Flag to run PHPUnit with code coverage.
+   * @options extension-dir Path to the Drupal extension.
+   * @options with-coverage Flag to run PHPUnit with code coverage.
+   * @options coverage-required Set the percent of the coverage that is needed.
    *
    * @command phpunit
    */
-  public function phpunit($html_path, $options = [
+  public function phpunit($html_path, array $options = [
     'extension-dir' => NULL,
     'with-coverage' => FALSE,
     'coverage-required' => 90,
@@ -144,9 +143,6 @@ class RoboFile extends Tasks {
    *
    * @param string $dir
    *   Path to the directory that might contain configs.
-   *
-   * @return string
-   *   Array of messages with files that are too long.
    */
   protected function checkFileNameLengths($dir) {
     $errors = [];
@@ -166,6 +162,11 @@ class RoboFile extends Tasks {
 
   /**
    * Run behat commands defined in the module.
+
+   * @command behat
+   *
+   * @options extension-dir Path to the testable extension.
+   * @options profile Which profile to install.
    *
    * @param string $html_path
    *   Path to the html directory.
@@ -173,10 +174,8 @@ class RoboFile extends Tasks {
    *   Command options.
    *
    * @throws \Robo\Exception\TaskException
-   *
-   * @command behat
    */
-  public function behat($html_path, $options = [
+  public function behat($html_path, array $options = [
     'extension-dir' => NULL,
     'profile' => 'standard',
   ]) {
@@ -223,6 +222,8 @@ class RoboFile extends Tasks {
    *   Profile to install.
    * @param array $enable_modules
    *   Array of modules to enable after installation.
+   * @param array $disable_modules
+   *   Which modules to disable after installing drupal.
    *
    * @return \Robo\Result
    *   Result of the tasks.

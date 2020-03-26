@@ -5,7 +5,6 @@ namespace StanfordCaravan\Robo\Tasks;
 use League\Container\ContainerAwareTrait;
 use Robo\Contract\BuilderAwareInterface;
 use Robo\LoadAllTasks;
-use Robo\Result;
 use Robo\Task\BaseTask;
 use StanfordCaravan\CaravanTrait;
 
@@ -48,6 +47,12 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    */
   protected $testDir;
 
+  /**
+   * SuCodeCeption constructor.
+   *
+   * @param string $root_path
+   *   Path of Drupal Directory.
+   */
   public function __construct($root_path) {
     $this->path = $root_path;
   }
@@ -76,6 +81,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    * Run the tests on the given domain.
    *
    * @param string $domain
+   *   Domain to use for tests.
    */
   public function domain($domain) {
     $this->domain = $domain;
@@ -98,6 +104,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    * Get the codeception configuration from the tool directory.
    *
    * @return string
+   *   Codeception.yml config.
    */
   protected function getCodeceptionConfig() {
     return file_get_contents("{$this->tooldir()}/config/codeception/codeception.yml");
@@ -106,7 +113,8 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   /**
    * Run the codeception tests.
    *
-   * @return \Robo\Result|void
+   * @return \Robo\Result
+   *   Result of the test.
    */
   public function run() {
     if (!file_exists("{$this->path}/codeception.yml")) {

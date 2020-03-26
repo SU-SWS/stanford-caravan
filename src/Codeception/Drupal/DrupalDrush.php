@@ -7,6 +7,8 @@ use StanfordCaravan\Codeception\Drupal\Util\Drush;
 
 /**
  * Class DrupalDrush.
+ *
+ * Example to include:
  * modules:
  *   - StanfordCaravan\Codeception\Drupal\DrupalDrush:
  *     working_directory: './docroot'
@@ -59,7 +61,7 @@ class DrupalDrush extends Module {
    *   Associative array of options.
    *
    * @return string
-   *    Sring of options.
+   *   Sring of options.
    */
   protected function normalizeOptions(array $options) {
     $command = '';
