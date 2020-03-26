@@ -4,7 +4,6 @@ namespace StanfordCaravan\Codeception\Drupal;
 
 use Codeception\Module;
 use Drupal\Core\Entity\FieldableEntityInterface;
-use Drupal\Core\Url;
 use Codeception\TestCase;
 
 /**

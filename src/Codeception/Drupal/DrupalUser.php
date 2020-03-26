@@ -202,36 +202,27 @@ class DrupalUser extends Module {
   private function deleteUsersContent($uid) {
     $errors = [];
     $cleanup_entities = $this->_getConfig('cleanup_entities');
-    if (is_array($cleanup_entities)) {
-      foreach ($cleanup_entities as $cleanup_entity) {
-        if (!is_string($cleanup_entity)) {
-          continue;
-        }
-        try {
-          $storage = \Drupal::entityTypeManager()->getStorage($cleanup_entity);
-        }
-        catch (\Exception $e) {
-          $errors[] = 'Could not load storage ' . $cleanup_entity;
-          continue;
-        }
-        try {
-          $entities = $storage->loadByProperties(['uid' => $uid]);
-        }
-        catch (\Exception $e) {
-          $errors[] = 'Could not load entities of type ' . $cleanup_entity . ' by uid ' . $uid;
-          continue;
-        }
-        try {
-          foreach ($entities as $entity) {
-            $entity->delete();
-          }
-        }
-        catch (\Exception $e) {
-          $errors[] = $e->getMessage();
-          continue;
+    if (!is_array($cleanup_entities)) {
+      return;
+    }
+
+    foreach ($cleanup_entities as $cleanup_entity) {
+      if (!is_string($cleanup_entity)) {
+        continue;
+      }
+      try {
+        $storage = \Drupal::entityTypeManager()->getStorage($cleanup_entity);
+
+        foreach ($storage->loadByProperties(['uid' => $uid]) as $entity) {
+          $entity->delete();
         }
       }
+      catch (\Exception $e) {
+        $errors[] = 'Unable to delete all entities. error: ' . $e->getMessage();
+        continue;
+      }
     }
+
     if ($errors) {
       $this->fail(implode(PHP_EOL, $errors));
     }
