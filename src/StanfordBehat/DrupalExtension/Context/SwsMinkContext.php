@@ -22,8 +22,8 @@ class SwsMinkContext extends RawMinkContext {
   /**
    * Before the feature runs, set the context parameters.
    *
-   * @param \Behat\Behat\Hook\Scope\BeforeScenarioScope $scope ;
-   *   The scope of the current scenario
+   * @param \Behat\Behat\Hook\Scope\BeforeScenarioScope $scope
+   *   The scope of the current scenario.
    *
    * @BeforeScenario
    */
@@ -95,7 +95,7 @@ class SwsMinkContext extends RawMinkContext {
    * Change the context to an iframe with a specific ID.
    *
    * @param string $name
-   *   Iframe name
+   *   Iframe name.
    *
    * @Then I switch to :name iframe
    */
@@ -157,11 +157,19 @@ class SwsMinkContext extends RawMinkContext {
   }
 
   /**
+   * Wait for a selector to be exist.
+   *
    * @param callable $lambda
-   * @param $selector
+   *   Function to evaluate.
+   * @param string $selector
+   *   Css selector.
    * @param int $attempts
+   *   Number of attempts to try
+   * @param string $not
+   *   Message modifier if a selector exists or not.
    *
    * @return bool
+   *   If $lambda evaluates to true.
    */
   protected function waitForSelector(callable $lambda, $selector, $attempts = 30, $not = ' not') {
     $last_message = '';
@@ -190,7 +198,7 @@ class SwsMinkContext extends RawMinkContext {
    *
    * @Then I drop :path file into dropzone
    */
-  public function iDropAFileIntoDropzone($path) {
+  public function iDropFileIntoDropzone($path) {
     $path = $this->getAbsoluteFilePath($path);
     $file_name = basename($path);
 
@@ -283,37 +291,15 @@ class SwsMinkContext extends RawMinkContext {
   }
 
   /**
-   * @when /^(?:|I )confirm the popup$/
-   */
-  public function confirmPopup() {
-    $this->getSession()->getDriver()->getWebDriverSession()->accept_alert();
-  }
-
-  /**
-   * @when /^(?:|I )cancel the popup$/
-   */
-  public function cancelPopup() {
-    $this->getSession()->getDriver()->getWebDriverSession()->dismiss_alert();
-  }
-
-  /**
-   * @When /^(?:|I )should see "([^"]*)" in popup$/
+   * Checks, that at least (?P<num>\d+) CSS elements exist on the page.
    *
-   * @param string $message The message.
+   * Example: Then I should see 5 or more "div" elements.
+   * Example: And I should see 5 or more "div" elements.
    *
-   * @return bool
-   */
-  public function assertPopupMessage($message) {
-    return $message == $this->getSession()
-        ->getDriver()
-        ->getWebDriverSession()
-        ->getAlert_text();
-  }
-
-  /**
-   * Checks, that at least (?P<num>\d+) CSS elements exist on the page
-   * Example: Then I should see 5 or more "div" elements
-   * Example: And I should see 5 or more "div" elements
+   * @param int $num
+   *   Number to search for.
+   * @param string $element
+   *   Element locator.
    *
    * @Then /^(?:|I )should see (?P<num>\d+) or more "(?P<element>[^"]*)" elements?$/
    */

@@ -162,11 +162,6 @@ class RoboFile extends Tasks {
 
   /**
    * Run behat commands defined in the module.
-
-   * @command behat
-   *
-   * @options extension-dir Path to the testable extension.
-   * @options profile Which profile to install.
    *
    * @param string $html_path
    *   Path to the html directory.
@@ -174,6 +169,11 @@ class RoboFile extends Tasks {
    *   Command options.
    *
    * @throws \Robo\Exception\TaskException
+   *
+   * @command behat
+   *
+   * @options extension-dir Path to the testable extension.
+   * @options profile Which profile to install.
    */
   public function behat($html_path, array $options = [
     'extension-dir' => NULL,
@@ -258,6 +258,11 @@ class RoboFile extends Tasks {
   /**
    * Run codeception tests.
    *
+   * @param string $html_path
+   *   Path location where to install drupal.
+   * @param array $options
+   *   Array of command options.
+   *
    * @command codeception
    *
    * @options extension-dir Path to the the drupal extension to test.
@@ -268,12 +273,9 @@ class RoboFile extends Tasks {
    *   are.
    * @options domain Change the domain for the tests if needed.
    *
-   * @param string $html_path
-   *   Path location where to install drupal.
-   *
    * @link https://codeception.com/quickstart
    */
-  public function codeCeption($html_path, $options = [
+  public function codeCeption($html_path, array $options = [
     'extension-dir' => NULL,
     'profile' => 'standard',
     'suite' => 'acceptance',

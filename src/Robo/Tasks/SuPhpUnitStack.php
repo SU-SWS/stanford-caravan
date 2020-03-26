@@ -4,13 +4,12 @@ namespace StanfordCaravan\Robo\Tasks;
 
 use League\Container\ContainerAwareTrait;
 use Robo\Contract\BuilderAwareInterface;
-use Robo\Exception\AbortTasksException;
 use Robo\LoadAllTasks;
 use Robo\Task\BaseTask;
 use StanfordCaravan\CaravanTrait;
 
 /**
- * Class SuDrupalStack
+ * Class SuDrupalStack.
  *
  * @package StanfordCaravan\Robo\Tasks
  */

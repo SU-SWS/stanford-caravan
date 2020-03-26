@@ -4,9 +4,7 @@ namespace StanfordCaravan\Robo\Tasks;
 
 use League\Container\ContainerAwareTrait;
 use Robo\Contract\BuilderAwareInterface;
-use Robo\Exception\AbortTasksException;
 use Robo\LoadAllTasks;
-use Robo\Result;
 use Robo\Task\BaseTask;
 use StanfordCaravan\CaravanTrait;
 
@@ -48,7 +46,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    * @param string $dir
    *   Directory to install drupal.
    */
-  function __construct($dir) {
+  public function __construct($dir) {
     $this->path = $dir;
   }
 
@@ -60,7 +58,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    *
    * @return $this
    */
-  function testExtension($testable_extension) {
+  public function testExtension($testable_extension) {
     $this->extensionDir = $testable_extension;
     return $this;
   }
@@ -73,7 +71,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    *
    * @return $this
    */
-  function keepCoreMedia($keep = TRUE) {
+  public function keepCoreMedia($keep = TRUE) {
     $this->keepMedia = $keep;
     return $this;
   }
@@ -84,7 +82,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    * @return \Robo\Result
    *   Result of the tasks.
    */
-  function run() {
+  public function run() {
     // CircleCI wait for database and reload apache.
     $this->taskExec('dockerize -wait tcp://localhost:3306 -timeout 1m')->run();
     $this->taskExec('apachectl stop; apachectl start')->run();
@@ -157,8 +155,6 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    *
    * @param string $dir
    *   Directory of the composer.json.
-   * @param bool $global
-   *   Check composer global first.
    */
   protected function requireThisCaravanVersion($dir) {
     $versions = $this->taskExec('composer')
@@ -211,7 +207,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
   }
 
   /**
-   * Merge two arrays recursively
+   * Merge two arrays recursively.
    *
    * @param array $array1
    *   First array to merge.
