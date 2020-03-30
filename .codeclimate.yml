@@ -113,3 +113,4 @@ plugins:
 exclude_patterns:
   - "tests/"
   - "**.min.*"
+  - "config/circleci.settings.php"

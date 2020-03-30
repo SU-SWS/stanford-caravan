@@ -5,7 +5,6 @@ namespace StanfordBehat\DrupalExtension\Context;
 use Behat\Behat\Hook\Scope\AfterStepScope;
 use Behat\Mink\Exception\ElementNotFoundException;
 use Drupal\DrupalExtension\Context\RawDrupalContext;
-use Drupal\DrupalExtension\Context\DrushContext;
 use Behat\Behat\Context\SnippetAcceptingContext;
 use Drupal\Core\Entity\EntityInterface;
 use Exception;
@@ -87,14 +86,14 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
   /**
    * Checks, that (?P<num>\d+) CSS elements exist in the given region.
    *
-   * Example: Then I should see 5 "div" elements in the "content" region
-   * Example: And I should see 5 "div" elements in the "header" region
+   * Example: Then I should see 5 "div" elements in the "content" region.
+   * Example: And I should see 5 "div" elements in the "header" region.
    *
    * @param int $num
    *   Number of elements.
    * @param string $element
    *   Element selector.
-   * @param string region
+   * @param string $region
    *   Region name.
    *
    * @throws \Behat\Mink\Exception\ExpectationException
@@ -111,12 +110,12 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
   /**
    * Checks, that no CSS elements exist in the given region.
    *
-   * Example: Then I should not see "form" elements in the "content" region
-   * Example: And I should not see "input" elements in the "header" region
+   * Example: Then I should not see "form" elements in the "content" region.
+   * Example: And I should not see "input" elements in the "header" region.
    *
    * @param string $element
    *   Element selector.
-   * @param string region
+   * @param string $region
    *   Region name.
    *
    * @throws \Behat\Mink\Exception\ExpectationException
@@ -135,15 +134,14 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
    *
    * @param string $element
    *   Element selector.
-   * @param string attribute
+   * @param string $attribute
    *   Attribute name.
    * @param string $value
    *   Expected value of the attribute.
    *
    * @throws \Behat\Mink\Exception\ExpectationException
    *
-   * @Then the element :element should have the attribute :attribute with the
-   *   value :value
+   * @Then the element :element should have the attribute :attribute with the value :value
    */
   public function theElementShouldHaveAttribute($element, $attribute, $value) {
     $this->getMink()
@@ -173,6 +171,11 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   /**
+   * Validate a button is disabled.
+   *
+   * @param string $button
+   *   Button id, value or alt.
+   *
    * @Then I check :button button is disabled
    */
   public function iCheckButtonIsDisabled($button) {
@@ -187,6 +190,11 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   /**
+   * Enable a module.
+   *
+   * @param string $module
+   *   Module name.
+   *
    * @Given the :module module is enabled
    */
   public function theModuleIsEnabled($module) {
@@ -199,6 +207,11 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   /**
+   * Checks if the module is enabled.
+   *
+   * @param string $module
+   *   Module name.
+   *
    * @Then check that the :module module is enabled
    */
   public function checkThatTheModuleIsEnabled($module) {
@@ -213,6 +226,13 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   /**
+   * Fill in a field with a specific css locator.
+   *
+   * @param string $locator
+   *   Css selector of the input field.
+   * @param string $value
+   *   Value to enter.
+   *
    * @Then I fill in element :locator with :value
    */
   public function iFillInElementWith($locator, $value) {
@@ -224,38 +244,55 @@ class SwsContext extends RawDrupalContext implements SnippetAcceptingContext {
   }
 
   /**
+   * Tests the response headers contains something.
+   *
+   * @param string $header
+   *   Header key.
+   * @param string $value
+   *   Header value to validate.
+   *
    * @Then /^the response header "([^"]*)" should contain "([^"]*)"$/
    */
-  public function theResponseHeaderShouldContain($arg1, $arg2) {
+  public function theResponseHeaderShouldContain($header, $value) {
     $headers = $this->getSession()->getResponseHeaders();
-    if (!isset($headers[$arg1])) {
-      throw new Exception('The HTTP header "' . $arg1 . '" does not appear to be set.');
+    if (!isset($headers[$header])) {
+      throw new Exception('The HTTP header "' . $header . '" does not appear to be set.');
     }
-    if (!in_array($arg2, $headers[$arg1])) {
-      throw new Exception('The HTTP header "' . $arg1 . '" did not contain "' . $arg2 . '"');
+    if (!in_array($value, $headers[$header])) {
+      throw new Exception('The HTTP header "' . $header . '" did not contain "' . $value . '"');
     }
   }
 
   /**
+   * Tests there should not be a given header in the response.
+   *
+   * @param string $header
+   *   Header key.
+   *
    * @Then /^the response header should not have "([^"]*)"$/
    */
-  public function theResponseHeaderShouldNotHave($arg1) {
+  public function theResponseHeaderShouldNotHave($header) {
     $headers = $this->getSession()->getResponseHeaders();
 
-    if (isset($headers[$arg1])) {
-      throw new Exception('The HTTP header "' . $arg1 . '" is set to: ' . array_pop($headers[$arg1]) . '.');
+    if (isset($headers[$header])) {
+      throw new Exception('The HTTP header "' . $header . '" is set to: ' . array_pop($headers[$header]) . '.');
     }
-
   }
 
   /**
+   * Uninstall a module.
+   *
+   * @param string $module
+   *   Module name.
+   *
    * @Given /^the "([^"]*)" module is uninstalled/
    */
-  public function theModuleIsUninstalled($arg1) {
-    $command = "pm-uninstall -y " . $arg1;
+  public function theModuleIsUninstalled($module) {
+    $command = "pm-uninstall -y " . $module;
     $result = $this->getDriver("drush")->$command();
     if (preg_match('/\[error\]/', $result)) {
       throw new Exception($result);
     }
   }
+
 }

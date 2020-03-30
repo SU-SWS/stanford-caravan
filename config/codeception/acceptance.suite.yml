@@ -1,0 +1,39 @@
+# Codeception Test Suite Configuration
+#
+# Suite for acceptance tests.
+# Perform tests in browser using the WebDriver or PhpBrowser.
+# If you need both WebDriver and PHPBrowser tests - create a separate suite.
+
+actor: AcceptanceTester
+modules:
+    enabled:
+      - \Helper\Acceptance
+      - StanfordCaravan\Codeception\Drupal\DrupalBootstrap:
+          root: '/var/www/html/docroot'
+          server:
+            HTTP_HOST: 'localhost'
+      - StanfordCaravan\Codeception\Drupal\DrupalDrush:
+          options:
+            uri: 'localhost'
+      - PhpBrowser:
+          url: 'http://localhost'
+      - StanfordCaravan\Codeception\Drupal\DrupalEntity:
+          cleanup_test: true
+          cleanup_failed: false
+          cleanup_suite: true
+          route_entities:
+              - node
+              - taxonomy_term
+              - media
+      - StanfordCaravan\Codeception\Drupal\DrupalUser:
+          drush: '/var/www/html/vendor/bin/drush'
+          default_role: 'authenticated'
+          driver: 'PhpBrowser'
+          cleanup_entities:
+            - node
+            - media
+            - file
+          cleanup_test: true
+          cleanup_failed: false
+          cleanup_suite: true
+    step_decorators: ~
