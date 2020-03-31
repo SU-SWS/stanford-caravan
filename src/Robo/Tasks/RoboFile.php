@@ -230,7 +230,7 @@ class RoboFile extends Tasks {
    * @return array
    *   Array of tasks to be executed.
    */
-  protected function installDrupal($drupal_root, $profile, array $enable_modules = [], array $disable_modules = ['']) {
+  protected function installDrupal($drupal_root, $profile, array $enable_modules = [], array $disable_modules = []) {
     $tasks[] = $this->taskWriteToFile("$drupal_root/sites/default/settings.php")
       ->textFromFile("{$this->toolDir()}/config/circleci.settings.php");
 
