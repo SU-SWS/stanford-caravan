@@ -194,13 +194,15 @@ class RoboFile extends Tasks {
 
     $profile = $options['profile'];
     $enable_modules = [$extension_name];
+    $disable_modules = [];
 
     if ($extension_type == 'profile') {
       $profile = $extension_name;
       $enable_modules = [];
+      $disable_modules[] = 'simplesamlphp_auth';
     }
 
-    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules));
+    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules, $disable_modules));
 
     $tasks[] = $this->taskBehat('vendor/bin/behat')
       ->dir($html_path)
@@ -228,7 +230,7 @@ class RoboFile extends Tasks {
    * @return array
    *   Array of tasks to be executed.
    */
-  protected function installDrupal($drupal_root, $profile, array $enable_modules = [], array $disable_modules = ['simplesamlphp_auth']) {
+  protected function installDrupal($drupal_root, $profile, array $enable_modules = [], array $disable_modules = []) {
     $tasks[] = $this->taskWriteToFile("$drupal_root/sites/default/settings.php")
       ->textFromFile("{$this->toolDir()}/config/circleci.settings.php");
 
@@ -292,13 +294,15 @@ class RoboFile extends Tasks {
 
     $profile = $options['profile'];
     $enable_modules = [$extension_name];
+    $disable_modules = [];
 
     if ($extension_type == 'profile') {
       $profile = $extension_name;
       $enable_modules = [];
+      $disable_modules[] = "simplesamlphp_auth";
     }
 
-    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules));
+    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules, $disable_modules));
     $tasks[] = $this->taskCodeCeptionStack($html_path)
       ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name/{$options['test-dir']}")
       ->suite($options['suite'])
