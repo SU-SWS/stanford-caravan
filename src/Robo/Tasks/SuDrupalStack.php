@@ -162,7 +162,6 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       ->arg('global')
       ->arg('show')
       ->option('format', 'json', '=')
-      ->option('installed')
       ->printOutput(FALSE)
       ->run()
       ->getMessage();
@@ -173,7 +172,6 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       if ($package['name'] == 'su-sws/stanford-caravan') {
         $version = substr($package['version'], 0, strpos($package['version'], ' '));
         $version = $version ?: $package['version'];
-        $version = 'dev-codeception-modules';
         $this->taskComposerRequire()
           ->dir($dir)
           ->arg("su-sws/stanford-caravan:$version")
