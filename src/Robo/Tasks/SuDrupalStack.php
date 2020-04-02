@@ -157,6 +157,8 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    *   Directory of the composer.json.
    */
   protected function requireThisCaravanVersion($dir) {
+    $local_caravan_version = $this->getLocalCaravanVersion($dir);
+
     $versions = $this->taskExec('composer')
       ->dir($dir)
       ->arg('global')
@@ -172,11 +174,39 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       if ($package['name'] == 'su-sws/stanford-caravan') {
         $version = substr($package['version'], 0, strpos($package['version'], ' '));
         $version = $version ?: $package['version'];
-        $this->taskComposerRequire()
-          ->dir($dir)
-          ->arg("su-sws/stanford-caravan:$version")
-          ->run();
+
+        if ($local_caravan_version != $version) {
+          $this->taskComposerRequire()
+            ->dir($dir)
+            ->arg("su-sws/stanford-caravan:$version")
+            ->run();
+        }
         return;
+      }
+    }
+  }
+
+  /**
+   * Get the version of caravan in the directory.
+   *
+   * @param string $dir
+   *   Path of the drupal composer.json.
+   *
+   * @return string|null
+   *   Installed version of the caravan package.
+   */
+  protected function getLocalCaravanVersion($dir) {
+    $versions = $this->taskExec('composer')
+      ->dir($dir)
+      ->arg('show')
+      ->option('format', 'json', '=')
+      ->printOutput(FALSE)
+      ->run()
+      ->getMessage();
+    foreach ($versions['installed'] as $package) {
+      if ($package['name'] == 'su-sws/stanford-caravan') {
+        $version = substr($package['version'], 0, strpos($package['version'], ' '));
+        return $version ?: $package['version'];
       }
     }
   }
@@ -189,13 +219,23 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    */
   protected function addComposer($file_to_merge) {
     $composer_path = "{$this->path}/composer.json";
+    $composer_path = str_replace('//', '/', $composer_path);
     $composer = json_decode(file_get_contents($composer_path), TRUE);
+
     $composer_to_add = json_decode(file_get_contents($file_to_merge), TRUE);
+
     foreach (['extra', 'require', 'require-dev', 'config'] as $merge_key) {
-      if (isset($composer[$merge_key]) && isset($composer_to_add[$merge_key])) {
-        $composer[$merge_key] = self::arrayMergeRecursive($composer[$merge_key], $composer_to_add[$merge_key]);
+      if (isset($composer_to_add[$merge_key])) {
+        if (isset($composer[$merge_key])) {
+          $composer[$merge_key] = self::arrayMergeRecursive($composer[$merge_key], $composer_to_add[$merge_key]);
+          continue;
+        }
+
+        $composer[$merge_key] = $composer_to_add[$merge_key];
       }
     }
+
+    // We don't want to merge these because the keys can be the same.
     if (isset($composer_to_add['repositories'])) {
       foreach ($composer_to_add['repositories'] as $repository) {
         $composer['repositories'][] = $repository;
