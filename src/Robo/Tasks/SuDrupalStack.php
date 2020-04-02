@@ -203,6 +203,8 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       ->printOutput(FALSE)
       ->run()
       ->getMessage();
+    $versions = json_decode($versions, TRUE);
+
     foreach ($versions['installed'] as $package) {
       if ($package['name'] == 'su-sws/stanford-caravan') {
         $version = substr($package['version'], 0, strpos($package['version'], ' '));
