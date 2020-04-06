@@ -47,7 +47,7 @@ class RoboFile extends Tasks {
     }
 
     $branch = "$major.x-$minor.x";
-
+    $this->taskGitStack()->checkout($branch)->run();
     $this->taskGitStack()
       ->dir($directory)
       ->checkout("origin/$branch -- composer.json")
