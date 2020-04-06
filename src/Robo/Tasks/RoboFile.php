@@ -5,7 +5,6 @@ namespace StanfordCaravan\Robo\Tasks;
 use Robo\Exception\AbortTasksException;
 use Robo\Tasks;
 use StanfordCaravan\CaravanTrait;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * CI/CD tools for running tests against themes, modules, and profiles.
@@ -60,10 +59,6 @@ class RoboFile extends Tasks {
       ->commit('Back to dev')
       ->push('origin', $branch)
       ->run();
-  }
-
-  protected function getNewVersion($old_version) {
-    return $old_version;
   }
 
   /**
@@ -193,7 +188,7 @@ class RoboFile extends Tasks {
     $files = $this->rglob("$dir/*/field.storage.*");
     foreach ($files as $file) {
       $filename = basename($file);
-      [, , $entity_type, $field_name,] = explode('.', $filename);
+      list(, , $entity_type, $field_name,) = explode('.', $filename);
       if (strlen("{$entity_type}_revision__$field_name") >= 48) {
         $count = 48 - strlen("{$entity_type}_revision__");
         $errors[] = "$filename field name is too long. Keep the field name under $count characters on '$entity_type' entities.";
