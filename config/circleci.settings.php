@@ -169,3 +169,5 @@ if (isset($_acsf_site_name)) {
 $settings['trusted_host_patterns'] = [
   '^.+$',
 ];
+
+$config['system.image']['toolkit'] = 'gd';
