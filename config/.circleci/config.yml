@@ -62,7 +62,7 @@ back_to_dev: &back_to_dev
   steps:
     - checkout
     - run:
-        name: Run Behat Tests
+        name: Back to dev
         command: |
           composer global require SU-SWS/stanford-caravan:dev-8.x-1.x
           ~/.composer/vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG} ${CIRCLE_WORKING_DIRECTORY}
