@@ -23,6 +23,45 @@ class RoboFile extends Tasks {
   }
 
   /**
+   * Adjust the composer.json and info.yml files back to dev after a release.
+   *
+   * @param string $old_semver
+   *   Recently released semver tag.
+   * @param string $directory
+   *   Directory where the module is to be updated.
+   *
+   * @command back-to-dev
+   * @usage vendor/bin/sws-caravan back-to-dev 8.1.0 /var/www/stanford_module
+   * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG} ${CIRCLE_WORKING_DIRECTORY}
+   */
+  public function backToDev($old_semver, $directory) {
+    list($major, $minor, $point) = explode('.', $old_semver);
+    $info_yamls = $this->rglob("$directory/*.info.yml");
+
+    foreach ($info_yamls as $yaml_file) {
+      $new_point = (int) $point + 1;
+      $new_version = "$major.x-$minor.$new_point-dev";
+      $yaml = file_get_contents($yaml_file);
+      $yaml = preg_replace('/version:.*?$/m', 'version: ' . $new_version, $yaml);
+      file_put_contents($yaml_file, $yaml);
+    }
+
+    $branch = "$major.x-$minor.x";
+    $this->taskGitStack()->checkout($branch)->run();
+    $this->taskGitStack()
+      ->dir($directory)
+      ->checkout("origin/$branch -- composer.json")
+      ->run();
+
+    $this->taskGitStack()
+      ->dir($directory)
+      ->add('.')
+      ->commit('Back to dev')
+      ->push('origin', $branch)
+      ->run();
+  }
+
+  /**
    * Run phpunit tests on the given extension.
    *
    * @param string $html_path
