@@ -146,14 +146,19 @@ class SwsMinkContext extends RawMinkContext {
    * @Then I wait for element :selector to be gone
    */
   public function iWaitForElementGone($selector) {
-    $this->waitForSelector(function ($context, $selector) {
-      $element = $context->getSession()
-        ->getPage()
-        ->find('css', $selector);
-      if (!$element || !$element->isVisible()) {
-        return TRUE;
-      }
-    }, $selector, 10, '');
+    try {
+      $this->waitForSelector(function ($context, $selector) {
+        $element = $context->getSession()
+          ->getPage()
+          ->find('css', $selector);
+        if (!$element || !$element->isVisible()) {
+          return TRUE;
+        }
+      }, $selector, 10, '');
+    }
+    catch (\Exception $e) {
+      return TRUE;
+    }
   }
 
   /**
