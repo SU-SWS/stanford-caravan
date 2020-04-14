@@ -8,6 +8,7 @@ actor: AcceptanceTester
 modules:
     enabled:
       - \Helper\Acceptance
+      - Codeception\Module\Asserts
       - StanfordCaravan\Codeception\Drupal\DrupalBootstrap:
           root: '/var/www/html/docroot'
           server:
