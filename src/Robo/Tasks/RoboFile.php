@@ -23,6 +23,30 @@ class RoboFile extends Tasks {
   }
 
   /**
+   * Set the global git configs if they aren't already set.
+   */
+  protected function setGlobalGitConfigs() {
+    // Set username and email for git config.
+    $git_config = $this->taskGitStack()
+      ->exec(['config', '--global --list'])
+      ->printOutput(FALSE)
+      ->run()
+      ->getMessage();
+    if (
+      strpos($git_config, 'user.email') === FALSE ||
+      strpos($git_config, 'user.name') === FALSE
+    ) {
+      $this->taskGitStack()
+        ->exec(['config', '--global user.email "CircleCI"'])
+        ->run();
+      $this->taskGitStack()->exec([
+        'config',
+        '--global user.name "sws-developers@lists.stanford.edu"',
+      ])->run();
+    }
+  }
+
+  /**
    * Adjust the composer.json and info.yml files back to dev after a release.
    *
    * @param string $old_semver
@@ -35,9 +59,20 @@ class RoboFile extends Tasks {
    * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG} ${CIRCLE_WORKING_DIRECTORY}
    */
   public function backToDev($old_semver, $directory) {
-    list($major, $minor, $point) = explode('.', $old_semver);
-    $info_yamls = $this->rglob("$directory/*.info.yml");
+    $this->setGlobalGitConfigs();
 
+    list($major, $minor, $point) = explode('.', $old_semver);
+    $branch = "$major.x-$minor.x";
+
+    // Merge master into the release branch first.
+    $tasks[] = $this->taskGitStack()->dir($directory)->checkout('master');
+    $tasks[] = $this->taskGitStack()->dir($directory)->pull('origin', 'master');
+    $tasks[] = $this->taskGitStack()->dir($directory)->checkout($branch);
+    $tasks[] = $this->taskGitStack()->dir($directory)->merge('master');
+    $this->collectionBuilder()->addTaskList($tasks)->run();
+
+    // Adjust the versions in the yaml files.
+    $info_yamls = $this->rglob("$directory/*.info.yml");
     foreach ($info_yamls as $yaml_file) {
       $new_point = (int) $point + 1;
       $new_version = "$major.x-$minor.$new_point-dev";
@@ -46,8 +81,6 @@ class RoboFile extends Tasks {
       file_put_contents($yaml_file, $yaml);
     }
 
-    $branch = "$major.x-$minor.x";
-    $this->taskGitStack()->checkout($branch)->run();
     $this->taskGitStack()
       ->dir($directory)
       ->checkout("origin/$branch -- composer.json")
