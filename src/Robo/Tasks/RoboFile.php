@@ -68,7 +68,7 @@ class RoboFile extends Tasks {
     $tasks[] = $this->taskGitStack()->dir($directory)->checkout('master');
     $tasks[] = $this->taskGitStack()->dir($directory)->pull('origin', 'master');
     $tasks[] = $this->taskGitStack()->dir($directory)->checkout($branch);
-    $tasks[] = $this->taskGitStack()->dir($directory)->merge('master');
+    $tasks[] = $this->taskGitStack()->dir($directory)->merge('master --no-edit');
     $this->collectionBuilder()->addTaskList($tasks)->run();
 
     // Adjust the versions in the yaml files.
