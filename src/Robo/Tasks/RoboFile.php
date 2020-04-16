@@ -68,9 +68,17 @@ class RoboFile extends Tasks {
     $tasks[] = $this->taskGitStack()->dir($directory)->checkout('master');
     $tasks[] = $this->taskGitStack()->dir($directory)->pull('origin', 'master');
     $tasks[] = $this->taskGitStack()->dir($directory)->checkout($branch);
-    $tasks[] = $this->taskGitStack()->dir($directory)->exec("reset --hard origin/$branch");
-    $tasks[] = $this->taskGitStack()->dir($directory)->merge('-Xtheirs master --no-edit');
-    $this->collectionBuilder()->addTaskList($tasks)->run();
+    $tasks[] = $this->taskGitStack()
+      ->dir($directory)
+      ->exec("reset --hard origin/$branch");
+    $tasks[] = $this->taskGitStack()
+      ->dir($directory)
+      ->merge('--strategy-option=theirs master --no-edit');
+    $result = $this->collectionBuilder()->addTaskList($tasks)->run();
+
+    if (!$result->wasSuccessful()) {
+      return $result;
+    }
 
     // Adjust the versions in the yaml files.
     $info_yamls = $this->rglob("$directory/*.info.yml");
@@ -82,12 +90,16 @@ class RoboFile extends Tasks {
       file_put_contents($yaml_file, $yaml);
     }
 
-    $this->taskGitStack()
+    $result = $this->taskGitStack()
       ->dir($directory)
       ->checkout("origin/$branch -- composer.json")
       ->run();
 
-    $this->taskGitStack()
+    if (!$result->wasSuccessful()) {
+      return $result;
+    }
+
+    return $this->taskGitStack()
       ->dir($directory)
       ->add('.')
       ->commit('Back to dev')
