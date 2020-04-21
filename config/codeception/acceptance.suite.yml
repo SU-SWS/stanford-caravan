@@ -9,9 +9,9 @@ modules:
   enabled:
     - \Helper\Acceptance
     - Codeception\Module\Asserts
+    - PhpBrowser
     - StanfordCaravan\Codeception\Drupal\DrupalBootstrap
     - StanfordCaravan\Codeception\Drupal\DrupalDrush
-    - PhpBrowser
     - StanfordCaravan\Codeception\Drupal\DrupalEntity
     - StanfordCaravan\Codeception\Drupal\DrupalUser
   config:

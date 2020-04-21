@@ -10,9 +10,9 @@ modules:
   enabled:
     - \Helper\Functional
     - Codeception\Module\Asserts
+    - WebDriver
     - StanfordCaravan\Codeception\Drupal\DrupalBootstrap
     - StanfordCaravan\Codeception\Drupal\DrupalDrush
-    - WebDriver
     - StanfordCaravan\Codeception\Drupal\DrupalEntity
     - StanfordCaravan\Codeception\Drupal\DrupalUser
   disabled:

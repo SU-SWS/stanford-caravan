@@ -43,6 +43,11 @@ class DrupalBootstrap extends Module {
   ];
 
   /**
+   * @var \Codeception\Module\WebDriver
+   */
+  protected $webDriver;
+
+  /**
    * DrupalBootstrap constructor.
    *
    * @param \Codeception\Lib\ModuleContainer $container
@@ -83,6 +88,53 @@ class DrupalBootstrap extends Module {
       $this->fail($e->getMessage());
     }
     $kernel->prepareLegacyRequest($request);
+
+    if ($this->hasModule('WebDriver')) {
+      $this->webDriver = $this->getModule('WebDriver');
+    }
+  }
+
+  /**
+   * Fill WYSIWYG editor.
+   *
+   * @param \Codeception\Util\IdentifiableFormFieldInterface $field
+   *   Element xpath.
+   * @param string $content
+   *   Text to insert in CkEditor.
+   */
+  public function fillWysiwygEditor(IdentifiableFormFieldInterface $field, $content) {
+    $selector = $this->webdriver->grabAttributeFrom($field->value, 'id');
+    $script = "jQuery(function(){CKEDITOR.instances[\"$selector\"].setData(\"$content\")});";
+    $this->webdriver->executeInSelenium(function (RemoteWebDriver $webDriver) use ($script) {
+      $webDriver->executeScript($script);
+    });
+    $this->webdriver->wait(1);
+  }
+
+  /**
+   * Wait for AJAX to finish.
+   */
+  public function waitForAjaxToFinish() {
+    $condition = <<<JS
+function isAjaxing(instance) {
+  return instance && instance.ajaxing === true;
+}
+var d7_not_ajaxing = true;
+if (typeof Drupal !== 'undefined' && typeof Drupal.ajax !== 'undefined' && typeof Drupal.ajax.instances === 'undefined') {
+  for(var i in Drupal.ajax) { if (isAjaxing(Drupal.ajax[i])) { d7_not_ajaxing = false; } }
+}
+var d8_not_ajaxing = (typeof Drupal === 'undefined' || typeof Drupal.ajax === 'undefined' || typeof Drupal.ajax.instances === 'undefined' || !Drupal.ajax.instances.some(isAjaxing))
+return (
+  // Assert no AJAX request is running (via jQuery or Drupal) and no
+  // animation is running.
+  (typeof jQuery === 'undefined' || (jQuery.active === 0 && jQuery(':animated').length === 0)) &&
+  d7_not_ajaxing && d8_not_ajaxing
+);
+JS;
+
+    $this->webDriver->waitForJS($condition);
+    // Wait 1 more second to allow anything to render.
+    $this->webDriver->wait(1);
   }
 
 }
