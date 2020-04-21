@@ -31,7 +31,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    *
    * @var string
    */
-  protected $suite = 'acceptance';
+  protected $suites = ['acceptance', 'functional'];
 
   /**
    * Domain to run tests on.
@@ -63,8 +63,8 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    * @param string $suite
    *   Suite name.
    */
-  public function suite($suite) {
-    $this->suite = $suite;
+  public function suites($suites) {
+    $this->suites = explode(',', $suites);
   }
 
   /**
@@ -90,11 +90,14 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   /**
    * Get the modified configuration for the current suite.
    *
+   * @param string $suite
+   *   Suite name.
+   *
    * @return string
    *   Yaml formatted configuration.
    */
-  protected function getSuiteConfig() {
-    $suite_config = file_get_contents("{$this->tooldir()}/config/codeception/{$this->suite}.suite.yml");
+  protected function getSuiteConfig($suite) {
+    $suite_config = file_get_contents("{$this->tooldir()}/config/codeception/$suite.suite.yml");
     $suite_config = str_replace('localhost', $this->domain, $suite_config);
     $suite_config = str_replace('/var/www/html', $this->path, $suite_config);
     return $suite_config;
@@ -107,7 +110,10 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    *   Codeception.yml config.
    */
   protected function getCodeceptionConfig() {
-    return file_get_contents("{$this->tooldir()}/config/codeception/codeception.yml");
+    $config = file_get_contents("{$this->tooldir()}/config/codeception/codeception.yml");
+    $config = str_replace('localhost', $this->domain, $config);
+    $config = str_replace('/var/www/html', $this->path, $config);
+    return $config;
   }
 
   /**
@@ -131,7 +137,6 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         ->arg('bootstrap')
         ->run();
     }
-    file_put_contents("{$this->path}/tests/{$this->suite}.suite.yml", $this->getSuiteConfig());
     file_put_contents("{$this->path}/codeception.yml", $this->getCodeceptionConfig());
 
     $tasks[] = $this->taskRsync()
@@ -139,13 +144,18 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       ->toPath("{$this->path}/tests/")
       ->recursive();
 
-    $tasks[] = $this->taskExec('vendor/bin/codecept')
-      ->dir($this->path)
-      ->arg('run')
-      ->arg($this->suite)
-      ->option('steps')
-      ->option('xml', "{$this->path}/artifacts/codeception.xml", '=');
+    foreach ($this->suites as $suite) {
+      file_put_contents("{$this->path}/tests/{$suite}.suite.yml", $this->getSuiteConfig($suite));
 
+      $tasks[] = $this->taskExec('vendor/bin/codecept')
+        ->dir($this->path)
+        ->arg('run')
+        ->arg($suite)
+        ->option('steps')
+        ->option('html')
+        ->option('xml')
+        ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=');
+    }
     return $this->collectionBuilder()->addTaskList($tasks)->run();
   }
 

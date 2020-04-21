@@ -1,6 +1,6 @@
 paths:
   tests: tests
-  output: artifacts/_output
+  output: artifacts
   data: tests/_data
   support: tests/_support
   envs: tests/_envs
@@ -34,7 +34,7 @@ modules:
     - StanfordCaravan\Codeception\Drupal\DrupalUser:
         drush: '/var/www/html/vendor/bin/drush'
         default_role: 'authenticated'
-        driver: 'PhpBrowser'
+        driver: 'WebDriver'
         cleanup_entities:
           - node
           - media

@@ -365,7 +365,7 @@ class RoboFile extends Tasks {
   public function codeCeption($html_path, array $options = [
     'extension-dir' => NULL,
     'profile' => 'standard',
-    'suite' => 'acceptance',
+    'suites' => 'acceptance,functional',
     'test-dir' => 'tests/codeception',
     'domain' => 'localhost',
   ]) {
@@ -390,7 +390,7 @@ class RoboFile extends Tasks {
     $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules, $disable_modules));
     $tasks[] = $this->taskCodeCeptionStack($html_path)
       ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name/{$options['test-dir']}")
-      ->suite($options['suite'])
+      ->suites($options['suites'])
       ->domain($options['domain']);
 
     return $this->collectionBuilder()

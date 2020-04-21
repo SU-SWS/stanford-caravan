@@ -79,7 +79,7 @@ class DrupalUser extends Module {
   public function _beforeSuite($settings = []) { // @codingStandardsIgnoreLine
     $this->driver = NULL;
     if (!$this->hasModule($this->_getConfig('driver'))) {
-      $this->fail('User driver module not found.');
+      $this->fail('User driver module not found: ' . $this->_getConfig('driver'));
     }
 
     $this->driver = $this->getModule($this->_getConfig('driver'));
