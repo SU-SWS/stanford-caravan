@@ -9,33 +9,14 @@ modules:
   enabled:
     - \Helper\Acceptance
     - Codeception\Module\Asserts
-    - StanfordCaravan\Codeception\Drupal\DrupalBootstrap:
-        root: '/var/www/html/docroot'
-        server:
-          HTTP_HOST: 'localhost'
-    - StanfordCaravan\Codeception\Drupal\DrupalDrush:
-        drush: '/var/www/html/vendor/bin/drush'
-        options:
-          uri: 'localhost'
-    - PhpBrowser:
-        url: 'http://localhost'
-    - StanfordCaravan\Codeception\Drupal\DrupalEntity:
-        cleanup_test: true
-        cleanup_failed: false
-        cleanup_suite: true
-        route_entities:
-          - node
-          - taxonomy_term
-          - media
-    - StanfordCaravan\Codeception\Drupal\DrupalUser:
-        drush: '/var/www/html/vendor/bin/drush'
-        default_role: 'authenticated'
-        driver: 'PhpBrowser'
-        cleanup_entities:
-          - node
-          - media
-          - file
-        cleanup_test: true
-        cleanup_failed: false
-        cleanup_suite: true
+    - StanfordCaravan\Codeception\Drupal\DrupalBootstrap
+    - StanfordCaravan\Codeception\Drupal\DrupalDrush
+    - PhpBrowser
+    - StanfordCaravan\Codeception\Drupal\DrupalEntity
+    - StanfordCaravan\Codeception\Drupal\DrupalUser
+  config:
+    StanfordCaravan\Codeception\Drupal\DrupalUser:
+      driver: 'PhpBrowser'
+  disabled:
+    - WebDriver
   step_decorators: ~
