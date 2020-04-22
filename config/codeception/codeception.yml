@@ -16,6 +16,7 @@ modules:
         server:
           HTTP_HOST: 'localhost'
     - StanfordCaravan\Codeception\Drupal\DrupalDrush:
+        drush: '/var/www/html/vendor/bin/drush'
         options:
           uri: 'localhost'
     - PhpBrowser:
