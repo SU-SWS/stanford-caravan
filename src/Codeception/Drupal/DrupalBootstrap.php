@@ -137,4 +137,40 @@ JS;
     $this->webDriver->wait(1);
   }
 
+  /**
+   * Drop a file into a dropzoneJS field.
+   *
+   * @param string $path
+   *   Absolute path to the file to upload.
+   */
+  public function dropFileInDropzone($path) {
+    $file_name = basename($path);
+
+    $type = mime_content_type($path);
+    $data = file_get_contents($path);
+    $base64 = "data:$type;base64," . base64_encode($data);
+
+    $javascript = "
+    function dataURLtoFile(dataurl, filename) {
+        var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+            bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+        while(n--){
+            u8arr[n] = bstr.charCodeAt(n);
+        }
+        return new File([u8arr], filename, {type:mime});
+    }
+    var newfile = dataURLtoFile('$base64', '$file_name');
+    Dropzone.instances.forEach(function(instance, index){
+      if(window.getComputedStyle(instance.element).display === 'block'){
+        Dropzone.instances[index].addFile(newfile);;
+      }
+    });
+    ";
+
+    $this->webDriver->executeJS($javascript);
+
+    // Give dropzone 2 seconds to complete.
+    $this->webDriver->wait(2);
+  }
+
 }
