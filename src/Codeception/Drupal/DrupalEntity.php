@@ -125,12 +125,14 @@ class DrupalEntity extends Module {
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function doEntityCleanup() {
+    $entity_type_manager = \Drupal::entityTypeManager();
     foreach ($this->entities as $type => $ids) {
-      $entities = \Drupal::entityTypeManager()
-        ->getStorage($type)
-        ->loadMultiple($ids);
-      foreach ($entities as $entity) {
-        $entity->delete();
+      if ($entity_type_manager->hasDefinition($type)) {
+        $entities = $entity_type_manager->getStorage($type)
+          ->loadMultiple($ids);
+        foreach ($entities as $entity) {
+          $entity->delete();
+        }
       }
     }
   }
