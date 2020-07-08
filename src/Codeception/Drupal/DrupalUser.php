@@ -205,13 +205,15 @@ class DrupalUser extends Module {
     if (!is_array($cleanup_entities)) {
       return;
     }
+    $entity_manager = \Drupal::entityTypeManager();
 
     foreach ($cleanup_entities as $cleanup_entity) {
-      if (!is_string($cleanup_entity)) {
+      if (!is_string($cleanup_entity) || !$entity_manager->hasDefinition($cleanup_entity)) {
         continue;
       }
+
       try {
-        $storage = \Drupal::entityTypeManager()->getStorage($cleanup_entity);
+        $storage = $entity_manager->getStorage($cleanup_entity);
 
         foreach ($storage->loadByProperties(['uid' => $uid]) as $entity) {
           $entity->delete();
