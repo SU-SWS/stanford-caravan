@@ -246,61 +246,6 @@ class RoboFile extends Tasks {
   }
 
   /**
-   * Run behat commands defined in the module.
-   *
-   * @param string $html_path
-   *   Path to the html directory.
-   * @param array $options
-   *   Command options.
-   *
-   * @throws \Robo\Exception\TaskException
-   *
-   * @command behat
-   *
-   * @options extension-dir Path to the testable extension.
-   * @options profile Which profile to install.
-   */
-  public function behat($html_path, array $options = [
-    'extension-dir' => NULL,
-    'profile' => 'standard',
-  ]) {
-    $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
-
-    if (empty($this->rglob("$extension_dir/*.feature"))) {
-      $this->say('No behat features exist to test');
-      return;
-    }
-
-    $tasks[] = $this->taskDrupalStack($html_path)
-      ->testExtension($extension_dir);
-
-    $extension_type = $this->getExtensionType($extension_dir);
-    $extension_name = $this->getExtensionName($extension_dir);
-
-    $profile = $options['profile'];
-    $enable_modules = [$extension_name];
-    $disable_modules = [];
-
-    if ($extension_type == 'profile') {
-      $profile = $extension_name;
-      $enable_modules = [];
-      $disable_modules[] = 'simplesamlphp_auth';
-    }
-
-    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules, $disable_modules));
-
-    $tasks[] = $this->taskBehat('vendor/bin/behat')
-      ->dir($html_path)
-      ->config("{$this->toolDir()}/config/behat.yml")
-      ->arg("$html_path/web/{$extension_type}s/custom/$extension_name")
-      ->option('profile', 'local')
-      ->option('strict')
-      ->noInteraction();
-
-    return $this->collectionBuilder()->addTaskList($tasks)->run();
-  }
-
-  /**
    * Install drupal in the given directory with a desired profile.
    *
    * @param string $drupal_root
