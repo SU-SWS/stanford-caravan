@@ -1,0 +1,14 @@
+diff --git a/src/Command/CheckCommand.php b/src/Command/CheckCommand.php
+index 7ee6f19..8fb76fc 100644
+--- a/src/Command/CheckCommand.php
++++ b/src/Command/CheckCommand.php
+@@ -158,7 +158,8 @@ class CheckCommand extends Command
+                 '#\Drupal calls should be avoided in classes, use dependency injection instead#',
+                 '#Plugin definitions cannot be altered.#',
+                 '#Missing cache backend declaration for performance.#',
+-                '#Plugin manager has cache backend specified but does not declare cache tags.#'
++                '#Plugin manager has cache backend specified but does not declare cache tags.#',
++                '#must override __construct if using YAML plugins#',
+             ];
+         }
+ 
