@@ -124,6 +124,13 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       ->option('exclude', 'html')
       ->run();
 
+    if (glob("{$this->toolDir()}/config/patches/*.patch")) {
+      $this->taskRsync()
+        ->fromPath("{$this->toolDir()}/config/patches/")
+        ->toPath("{$this->path}/patches")
+        ->recursive()
+        ->run();
+    }
     $this->addComposer("{$this->toolDir()}/config/composer.json");
     $this->addComposer("{$this->path}/web/{$extension_type}s/custom/$extension_name/composer.json");
 
