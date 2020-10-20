@@ -153,7 +153,7 @@ class DrupalUser extends Module {
    *   User name or user id.
    */
   public function logInAs($username) {
-    if (is_int($username)) {
+    if ((int) $username) {
       $command = sprintf('uli --uid=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
     } else {
       $command = sprintf('uli --name=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
