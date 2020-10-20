@@ -147,13 +147,17 @@ class DrupalUser extends Module {
   }
 
   /**
-   * Log in user by username.
+   * Log in user by username or user id.
    *
    * @param string|int $username
-   *   User id.
+   *   User name or user id.
    */
   public function logInAs($username) {
-    $command = sprintf('uli --name=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
+    if (is_int($username)) {
+      $command = sprintf('uli --uid=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
+    } else {
+      $command = sprintf('uli --name=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
+    }
     $output = Drush::runDrush($command, $this->_getConfig('drush'), $this->_getConfig('working_directory'));
     $gen_url = str_replace(PHP_EOL, '', $output);
     $url = substr($gen_url, strpos($gen_url, '/user/reset'));
