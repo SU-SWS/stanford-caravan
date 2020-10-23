@@ -50,8 +50,11 @@ class DrupalDrush extends Module {
     elseif ($this->_getConfig('options')) {
       $command = $this->normalizeOptions($this->_getConfig('options')) . $command;
     }
+    $command .= ' --no-interaction';
+    $result = Drush::runDrush($command, $this->_getConfig('drush'), $this->_getConfig('working_directory'));
 
-    return Drush::runDrush($command, $this->_getConfig('drush'), $this->_getConfig('working_directory'));
+    echo $result . PHP_EOL;
+    return $result;
   }
 
   /**
