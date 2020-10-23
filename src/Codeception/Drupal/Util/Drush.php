@@ -33,8 +33,8 @@ class Drush {
     if ($pwd) {
       $process->setWorkingDirectory($pwd);
     }
-    $response = null;
-    $result = $process->mustRun(function($type, $data) use (&$response) {
+    $response = NULL;
+    $process->mustRun(function ($type, $data) use (&$response) {
       $response = $data;
     });
     return is_string($response) ? trim($response) : $response;

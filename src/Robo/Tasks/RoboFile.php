@@ -326,6 +326,7 @@ class RoboFile extends Tasks {
     $profile = $options['profile'];
     $enable_modules = explode(',', $options['modules']);
     $enable_modules[] = $extension_name;
+    $enable_modules = array_values(array_unique(array_filter($enable_modules)));
     $disable_modules = [];
 
     if ($extension_type == 'profile') {
