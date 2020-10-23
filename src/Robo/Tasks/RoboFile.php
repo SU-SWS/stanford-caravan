@@ -310,6 +310,7 @@ class RoboFile extends Tasks {
   public function codeCeption($html_path, array $options = [
     'extension-dir' => NULL,
     'profile' => 'standard',
+    'modules' => '',
     'suites' => 'acceptance,functional',
     'test-dir' => 'tests/codeception',
     'domain' => 'localhost',
@@ -323,7 +324,8 @@ class RoboFile extends Tasks {
     $extension_name = $this->getExtensionName($extension_dir);
 
     $profile = $options['profile'];
-    $enable_modules = [$extension_name];
+    $enable_modules = explode(',', $options['modules']);
+    $enable_modules[] = $extension_name;
     $disable_modules = [];
 
     if ($extension_type == 'profile') {
