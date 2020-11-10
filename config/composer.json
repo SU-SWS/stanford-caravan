@@ -33,6 +33,7 @@
         "discard-changes": true
     },
     "extra": {
+        "enable-patching": true,
         "patches": {
             "mglaman/drupal-check": {
                 "Invalid error for yaml plugin managers https://github.com/mglaman/phpstan-drupal/issues/142": "patches/drupal-check_yaml-plugin.patch"
