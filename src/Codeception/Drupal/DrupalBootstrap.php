@@ -87,7 +87,8 @@ class DrupalBootstrap extends Module {
     catch (\Exception $e) {
       $this->fail($e->getMessage());
     }
-    $kernel->prepareLegacyRequest($request);
+    $kernel->boot();
+    $kernel->preHandle($request);
 
     if ($this->hasModule('WebDriver')) {
       $this->webDriver = $this->getModule('WebDriver');
