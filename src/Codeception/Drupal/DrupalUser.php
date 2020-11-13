@@ -120,7 +120,7 @@ class DrupalUser extends Module {
    * @param mixed $password
    *   Password.
    *
-   * @return \Drupal\user\Entity\User
+   * @return \Drupal\user\UserInterface
    *   User object.
    */
   public function createUserWithRoles(array $roles = [], $password = FALSE) {
@@ -157,7 +157,7 @@ class DrupalUser extends Module {
       $command = sprintf('uli --uid=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
     }
     else {
-      $command = sprintf('uli --name=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
+      $command = sprintf('uli --name="%s" --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
     }
     $output = Drush::runDrush($command, $this->_getConfig('drush'), $this->_getConfig('working_directory'));
     $gen_url = str_replace(PHP_EOL, '', $output);
@@ -171,13 +171,13 @@ class DrupalUser extends Module {
    * @param string $role
    *   Role.
    *
-   * @return \Drupal\user\Entity\User
+   * @return \Drupal\user\UserInterface
    *   User object.
    */
   public function logInWithRole($role) {
     $user = $this->createUserWithRoles([$role], Factory::create()
       ->password(12, 14));
-    $this->logInAs($user->getUsername());
+    $this->logInAs($user->getDisplayName());
 
     return $user;
   }
