@@ -157,7 +157,7 @@ class DrupalUser extends Module {
       $command = sprintf('uli --uid=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
     }
     else {
-      $command = sprintf('uli --name="%s" --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
+      $command = sprintf('uli --name=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
     }
     $output = Drush::runDrush($command, $this->_getConfig('drush'), $this->_getConfig('working_directory'));
     $gen_url = str_replace(PHP_EOL, '', $output);
