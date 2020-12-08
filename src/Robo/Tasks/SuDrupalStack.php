@@ -103,6 +103,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       ->run();
 
     chdir($this->path);
+    $this->taskComposerConfig()->arg('minimum-stability')->arg('dev')->run();
 
     $extension_type = $this->getExtensionType($this->extensionDir);
     $extension_name = $this->getExtensionName($this->extensionDir);
@@ -149,12 +150,6 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
     $this->requireThisCaravanVersion($this->path);
     $this->taskFilesystemStack()->mkdir("$this->path/artifacts")->run();
-
-    return $this->taskExec('vendor/bin/pcov')
-      ->dir($this->path)
-      ->arg('clobber')
-      ->run();
-
   }
 
   /**
