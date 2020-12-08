@@ -9,6 +9,22 @@
         {
             "type": "composer",
             "url": "https://packages.drupal.org/8"
+        },
+        {
+            "url": "https://git.drupalcode.org/issue/domain_301_redirect-2954889",
+            "type": "vcs"
+        },
+        {
+            "url": "https://git.drupalcode.org/issue/link_title_formatter-3174382",
+            "type": "vcs"
+        },
+        {
+            "url": "https://git.drupalcode.org/issue/response_code_condition-3141520",
+            "type": "vcs"
+        },
+        {
+            "url": "https://git.drupalcode.org/issue/paranoia-3148370",
+            "type": "vcs"
         }
     ],
     "require": {
@@ -16,7 +32,11 @@
         "cweagans/composer-patches": "^1.6",
         "drupal/core": "^9.0",
         "drush/drush": "^10.2",
-        "su-sws/stanford-caravan": "dev-8.x-1.x"
+        "su-sws/stanford-caravan": "dev-8.x-1.x",
+        "drupal/domain_301_redirect": "dev-2954889-d9-ready as 1.0.0",
+        "drupal/link_title_formatter": "dev-3174382-d9-ready as 1.1.0",
+        "drupal/paranoia": "dev-3148370-d9-ready as 1.9.0",
+        "drupal/response_code_condition": "dev-3141520-d9-ready as 1.0.0"
     },
     "require-dev": {
         "drupal/core-dev": "^9.0",
