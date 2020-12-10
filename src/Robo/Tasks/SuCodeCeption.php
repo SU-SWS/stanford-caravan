@@ -123,6 +123,9 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    *   Result of the test.
    */
   public function run() {
+    if (!file_exists($this->testDir)) {
+      return;
+    }
     if (!file_exists("{$this->path}/codeception.yml")) {
       $this->taskComposerRequire()
         ->dir($this->path)
