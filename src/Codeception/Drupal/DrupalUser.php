@@ -131,7 +131,7 @@ class DrupalUser extends Module {
       $user = \Drupal::entityTypeManager()->getStorage('user')->create([
         'name' => $faker->userName,
         'mail' => $faker->email,
-        'roles' => empty($roles) ? $this->_getConfig('default_role') : $roles,
+        'roles' => $this->getRoleMachineNames($roles),
         'pass' => $password ? $password : $faker->password(12, 14),
         'status' => 1,
       ]);
@@ -144,6 +144,32 @@ class DrupalUser extends Module {
     }
 
     return $user;
+  }
+
+  /**
+   * Get the clean list of role ID's.
+   *
+   * @param array $roles
+   *   Array of role ids or labels.
+   *
+   * @return array
+   *   Array of role ids.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
+   */
+  protected function getRoleMachineNames(array $roles = []): array {
+    $roles = empty($roles) ? $this->_getConfig('default_role') : $roles;
+    $role_storage = \Drupal::entityTypeManager()->getStorage('user_role');
+    foreach ($roles as &$role_id) {
+      // If the test calls for the label of the role, lets try to find the id
+      // of the role entity.
+      if (!$role_storage->load($role_id)) {
+        $loaded_roles = $role_storage->loadByProperties(['label' => $role_id]);
+        $role_id = $loaded_roles ? key($loaded_roles) : NULL;
+      }
+    }
+    return array_filter($roles);
   }
 
   /**

@@ -96,13 +96,14 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     // Create the project.
     // @link https://www.drupal.org/docs/develop/using-composer/using-composer-to-install-drupal-and-manage-dependencies
     $this->taskComposerCreateProject()
-      ->arg('drupal/recommended-project:^8')
+      ->arg('drupal/recommended-project:^9')
       ->arg($this->path)
       ->option('no-interaction')
       ->option('no-install')
       ->run();
 
     chdir($this->path);
+    $this->taskComposerConfig()->arg('minimum-stability')->arg('dev')->run();
 
     $extension_type = $this->getExtensionType($this->extensionDir);
     $extension_name = $this->getExtensionName($this->extensionDir);
@@ -149,12 +150,6 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
     $this->requireThisCaravanVersion($this->path);
     $this->taskFilesystemStack()->mkdir("$this->path/artifacts")->run();
-
-    return $this->taskExec('vendor/bin/pcov')
-      ->dir($this->path)
-      ->arg('clobber')
-      ->run();
-
   }
 
   /**
@@ -236,7 +231,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     foreach (['extra', 'require', 'require-dev', 'config'] as $merge_key) {
       if (isset($composer_to_add[$merge_key])) {
         if (isset($composer[$merge_key])) {
-          $composer[$merge_key] = self::arrayMergeRecursive($composer[$merge_key], $composer_to_add[$merge_key]);
+          $composer[$merge_key] = self::arrayMergeRecursive($composer_to_add[$merge_key], $composer[$merge_key]);
           continue;
         }
 

@@ -154,12 +154,6 @@ class RoboFile extends Tasks {
       ->extensionType($extension_type)
       ->extensionName($extension_name);
 
-    $tasks[] = $this->taskFilesystemStack()
-      ->remove("$html_path/web/{$extension_type}s/custom/$extension_name/tests/codeception");
-    $tasks[] = $this->taskExec("$html_path/vendor/bin/drupal-check")
-      ->dir("$html_path/web")
-      ->arg("$html_path/web/{$extension_type}s/custom/$extension_name");
-
     $test_result = $this->collectionBuilder()->addTaskList($tasks)->run();
 
     if ($options['with-coverage']) {

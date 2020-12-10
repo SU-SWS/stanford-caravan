@@ -9,23 +9,38 @@
         {
             "type": "composer",
             "url": "https://packages.drupal.org/8"
+        },
+        {
+            "url": "https://git.drupalcode.org/issue/domain_301_redirect-2954889",
+            "type": "vcs"
+        },
+        {
+            "url": "https://git.drupalcode.org/issue/link_title_formatter-3174382",
+            "type": "vcs"
+        },
+        {
+            "url": "https://git.drupalcode.org/issue/response_code_condition-3141520",
+            "type": "vcs"
+        },
+        {
+            "url": "https://git.drupalcode.org/issue/paranoia-3148370",
+            "type": "vcs"
         }
     ],
     "require": {
         "php": ">=7.1",
         "cweagans/composer-patches": "^1.6",
-        "drupal/core": "^8.8.0",
-        "drupal/drupal-extension": "^4.0",
+        "drupal/core": "^9.0",
         "drush/drush": "^10.2",
-        "mglaman/drupal-check": "^1.0",
-        "phpunit/phpunit": "^7.0",
-        "squizlabs/php_codesniffer": "^3.0.1",
-        "su-sws/stanford-caravan": "dev-8.x-1.x"
+        "su-sws/stanford-caravan": "dev-8.x-1.x",
+        "drupal/domain_301_redirect": "dev-2954889-d9-ready as 1.0.0",
+        "drupal/link_title_formatter": "dev-3174382-d9-ready as 1.1.0",
+        "drupal/paranoia": "dev-3148370-d9-ready as 1.9.0",
+        "drupal/response_code_condition": "dev-3141520-d9-ready as 1.0.0"
     },
     "require-dev": {
-        "pcov/clobber": "^2.0",
-        "drupal/core-dev": "^8.8",
-        "phpstan/phpstan": "0.12.42"
+        "drupal/core-dev": "^9.0",
+        "phpspec/prophecy-phpunit": "^2.0"
     },
     "config": {
         "php": "7",
@@ -34,9 +49,10 @@
     },
     "extra": {
         "enable-patching": true,
+        "composer-exit-on-patch-failure": true,
         "patches": {
-            "mglaman/drupal-check": {
-                "Invalid error for yaml plugin managers https://github.com/mglaman/phpstan-drupal/issues/142": "patches/drupal-check_yaml-plugin.patch"
+            "drupal/core": {
+                "https://www.drupal.org/project/drupal/issues/3186443": "https://www.drupal.org/files/issues/2020-12-04/3186443-1.patch"
             }
         },
         "installer-paths": {
