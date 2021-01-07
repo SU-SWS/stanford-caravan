@@ -50,11 +50,7 @@
     "extra": {
         "enable-patching": true,
         "composer-exit-on-patch-failure": true,
-        "patches": {
-            "drupal/core": {
-                "https://www.drupal.org/project/drupal/issues/3186443": "https://www.drupal.org/files/issues/2020-12-04/3186443-1.patch"
-            }
-        },
+        "patches": {},
         "installer-paths": {
             "web/core": [
                 "type:drupal-core"
