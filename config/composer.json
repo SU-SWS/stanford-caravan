@@ -8,7 +8,12 @@
     "repositories": [
         {
             "type": "composer",
-            "url": "https://packages.drupal.org/8"
+            "url": "https://packages.drupal.org/8",
+            "exclude": [
+                "drupal/domain_301_redirect",
+                "drupal/link_title_formatter",
+                "drupal/response_code_condition"
+            ]
         },
         {
             "url": "https://git.drupalcode.org/issue/domain_301_redirect-2954889",
@@ -21,10 +26,6 @@
         {
             "url": "https://git.drupalcode.org/issue/response_code_condition-3141520",
             "type": "vcs"
-        },
-        {
-            "url": "https://git.drupalcode.org/issue/paranoia-3148370",
-            "type": "vcs"
         }
     ],
     "require": {
@@ -35,7 +36,6 @@
         "su-sws/stanford-caravan": "dev-8.x-2.x",
         "drupal/domain_301_redirect": "dev-2954889-d9-ready as 1.0.0",
         "drupal/link_title_formatter": "dev-3174382-d9-ready as 1.1.0",
-        "drupal/paranoia": "dev-3148370-d9-ready as 1.9.0",
         "drupal/response_code_condition": "dev-3141520-d9-ready as 1.0.0"
     },
     "require-dev": {
