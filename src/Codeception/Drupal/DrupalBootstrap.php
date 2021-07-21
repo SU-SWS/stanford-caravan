@@ -117,23 +117,18 @@ class DrupalBootstrap extends Module {
    */
   public function waitForAjaxToFinish() {
     $condition = <<<JS
-function isAjaxing(instance) {
-  return instance && instance.ajaxing === true;
-}
-var d7_not_ajaxing = true;
-if (typeof Drupal !== 'undefined' && typeof Drupal.ajax !== 'undefined' && typeof Drupal.ajax.instances === 'undefined') {
-  for(var i in Drupal.ajax) { if (isAjaxing(Drupal.ajax[i])) { d7_not_ajaxing = false; } }
-}
-var d8_not_ajaxing = (typeof Drupal === 'undefined' || typeof Drupal.ajax === 'undefined' || typeof Drupal.ajax.instances === 'undefined' || !Drupal.ajax.instances.some(isAjaxing))
-return (
-  // Assert no AJAX request is running (via jQuery or Drupal) and no
-  // animation is running.
-  (typeof jQuery === 'undefined' || (jQuery.active === 0 && jQuery(':animated').length === 0)) &&
-  d7_not_ajaxing && d8_not_ajaxing
-);
-JS;
+      function isAjaxing(instance) {
+        return instance && instance.ajaxing === true
+      }
+      return (
+        // Assert no AJAX request is running (via jQuery or Drupal) and no
+        // animation is running.
+        (typeof jQuery === 'undefined' || (jQuery.active === 0 && jQuery(':animated').length === 0)) &&
+        (typeof Drupal === 'undefined' || typeof Drupal.ajax === 'undefined' || !Drupal.ajax.instances.some(isAjaxing))
+      );
+    JS;
 
-    $this->webDriver->waitForJS($condition);
+    $this->webDriver->waitForJS($condition,5);
     // Wait 1 more second to allow anything to render.
     $this->webDriver->wait(1);
   }
