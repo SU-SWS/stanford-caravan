@@ -125,6 +125,9 @@ class DrupalEntity extends Module {
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
   public function doEntityCleanup() {
+    if (empty($this->entities)) {
+      return;
+    }
     $entity_type_manager = \Drupal::entityTypeManager();
     foreach ($this->entities as $type => $ids) {
       if ($entity_type_manager->hasDefinition($type)) {
@@ -135,6 +138,7 @@ class DrupalEntity extends Module {
         }
       }
     }
+    drupal_flush_all_caches();
   }
 
   /**

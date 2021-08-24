@@ -221,6 +221,7 @@ class DrupalUser extends Module {
         $this->deleteUsersContent($user->id());
         $user->delete();
       }
+      drupal_flush_all_caches();
     }
   }
 
