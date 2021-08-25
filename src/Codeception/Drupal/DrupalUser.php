@@ -214,14 +214,14 @@ class DrupalUser extends Module {
    * @throws \Drupal\Core\Entity\EntityStorageException
    */
   private function userCleanup() {
-    if (isset($this->users)) {
+    if (isset($this->users) && !empty($this->users)) {
       $users = User::loadMultiple($this->users);
       /** @var \Drupal\user\Entity\User $user */
       foreach ($users as $user) {
         $this->deleteUsersContent($user->id());
         $user->delete();
       }
-      drupal_flush_all_caches();
+      \Drupal::service('cache.render')->invalidateAll();
     }
   }
 

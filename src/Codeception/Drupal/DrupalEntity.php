@@ -138,7 +138,7 @@ class DrupalEntity extends Module {
         }
       }
     }
-    drupal_flush_all_caches();
+    \Drupal::service('cache.render')->invalidateAll();
   }
 
   /**
