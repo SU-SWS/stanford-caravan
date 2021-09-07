@@ -139,6 +139,7 @@ class DrupalEntity extends Module {
       }
     }
     \Drupal::service('cache.render')->invalidateAll();
+    \Drupal::service('cache.bootstrap')->invalidate('paragraphs_type_icon_uuid');
   }
 
   /**
