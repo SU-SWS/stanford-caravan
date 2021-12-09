@@ -21,7 +21,7 @@
         {
             "url": "https://git.drupalcode.org/issue/link_title_formatter-3174382",
             "type": "vcs"
-        },
+        }
     ],
     "require": {
         "php": ">=7.1",
