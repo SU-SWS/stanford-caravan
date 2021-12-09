@@ -11,8 +11,7 @@
             "url": "https://packages.drupal.org/8",
             "exclude": [
                 "drupal/domain_301_redirect",
-                "drupal/link_title_formatter",
-                "drupal/response_code_condition"
+                "drupal/link_title_formatter"
             ]
         },
         {
@@ -23,10 +22,6 @@
             "url": "https://git.drupalcode.org/issue/link_title_formatter-3174382",
             "type": "vcs"
         },
-        {
-            "url": "https://git.drupalcode.org/issue/response_code_condition-3141520",
-            "type": "vcs"
-        }
     ],
     "require": {
         "php": ">=7.1",
@@ -35,8 +30,7 @@
         "drush/drush": "^10.2",
         "su-sws/stanford-caravan": "dev-8.x-2.x",
         "drupal/domain_301_redirect": "dev-2954889-d9-ready as 1.0.0",
-        "drupal/link_title_formatter": "dev-3174382-d9-ready as 1.1.0",
-        "drupal/response_code_condition": "dev-3141520-d9-ready as 1.0.0"
+        "drupal/link_title_formatter": "dev-3174382-d9-ready as 1.1.0"
     },
     "require-dev": {
         "drupal/core-dev": "^9.0",
