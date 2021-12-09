@@ -250,7 +250,6 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
           $repo['exclude'] = [
             'drupal/domain_301_redirect',
             'drupal/link_title_formatter',
-            'drupal/response_code_condition',
           ];
         }
       }
