@@ -36,6 +36,9 @@
         "drupal/core-dev": "^9.0",
         "phpspec/prophecy-phpunit": "^2.0"
     },
+    "replace": {
+        "squizlabs/php_codesniffer": "*"
+    },
     "config": {
         "php": "7",
         "sort-packages": true,
