@@ -39,7 +39,8 @@
     "config": {
         "php": "7",
         "sort-packages": true,
-        "discard-changes": true
+        "discard-changes": true,
+        "allow-plugins": true
     },
     "extra": {
         "enable-patching": true,
