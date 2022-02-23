@@ -28,7 +28,7 @@
         "cweagans/composer-patches": "^1.6",
         "drupal/core": "^9.0",
         "drush/drush": "^10.2",
-        "su-sws/stanford-caravan": "dev-8.x-2.x",
+        "su-sws/stanford-caravan": "dev-updated-dependencies",
         "drupal/domain_301_redirect": "dev-2954889-d9-ready as 1.0.0",
         "drupal/link_title_formatter": "dev-3174382-d9-ready as 1.1.0"
     },
