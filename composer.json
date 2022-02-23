@@ -9,7 +9,7 @@
         }
     ],
     "require": {
-        "consolidation/robo": "^1",
+        "consolidation/robo": "^3.0",
         "boedah/robo-drush": "^4.2",
         "fzaninotto/faker": "^1.9"
     },
