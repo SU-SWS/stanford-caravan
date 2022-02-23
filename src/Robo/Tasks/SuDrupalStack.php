@@ -229,7 +229,8 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
     $composer_to_add = json_decode(file_get_contents($file_to_merge), TRUE);
 
-    foreach (['extra', 'require', 'require-dev', 'config'] as $merge_key) {
+    $merge_keys = ['extra', 'require', 'require-dev', 'config', 'replace'];
+    foreach ($merge_keys as $merge_key) {
       if (isset($composer_to_add[$merge_key])) {
         if (isset($composer[$merge_key])) {
           $composer[$merge_key] = self::arrayMergeRecursive($composer_to_add[$merge_key], $composer[$merge_key]);
