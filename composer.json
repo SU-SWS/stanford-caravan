@@ -9,7 +9,7 @@
         }
     ],
     "require": {
-        "consolidation/robo": "^3.0",
+        "consolidation/robo": "^1.0 || ^2.0 || ^3.0",
         "fzaninotto/faker": "^1.9"
     },
     "bin": [
