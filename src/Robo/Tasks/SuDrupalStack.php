@@ -104,6 +104,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
     chdir($this->path);
     $this->taskComposerConfig()->arg('minimum-stability')->arg('dev')->run();
+    $this->taskComposerConfig()->arg('allow-plugins')->arg('true')->run();
 
     $extension_type = $this->getExtensionType($this->extensionDir);
     $extension_name = $this->getExtensionName($this->extensionDir);
@@ -206,8 +207,8 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       ->run()
       ->getMessage();
     $versions = json_decode($versions, TRUE);
-
-    foreach ($versions['installed'] as $package) {
+    $installed_version = $versions['installed'] ?? [];
+    foreach ($installed_version as $package) {
       if ($package['name'] == 'su-sws/stanford-caravan') {
         $version = substr($package['version'], 0, strpos($package['version'], ' '));
         return $version ?: $package['version'];
@@ -228,7 +229,8 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
     $composer_to_add = json_decode(file_get_contents($file_to_merge), TRUE);
 
-    foreach (['extra', 'require', 'require-dev', 'config'] as $merge_key) {
+    $merge_keys = ['extra', 'require', 'require-dev', 'config', 'replace'];
+    foreach ($merge_keys as $merge_key) {
       if (isset($composer_to_add[$merge_key])) {
         if (isset($composer[$merge_key])) {
           $composer[$merge_key] = self::arrayMergeRecursive($composer_to_add[$merge_key], $composer[$merge_key]);

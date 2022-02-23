@@ -2,8 +2,6 @@
 
 namespace StanfordCaravan\Robo\Tasks;
 
-use Boedah\Robo\Task\Drush\DrushStack;
-
 /**
  * Robo tasks loader.
  *
@@ -43,7 +41,7 @@ trait loadTasks {
    * @param string $pathToDrush
    *   Path to drush binary.
    *
-   * @return \Boedah\Robo\Task\Drush\DrushStack
+   * @return \StanfordCaravan\Robo\Tasks\DrushStack
    *   Task executable.
    */
   protected function taskDrushStack($pathToDrush = 'drush') {

@@ -215,8 +215,8 @@ class SuPhpUnitStack extends BaseTask implements BuilderAwareInterface {
       $this->printTaskInfo('No coverage to upload to code climate.');
       return;
     }
-
-    if (!isset($_ENV['CC_TEST_REPORTER_ID'])) {
+    $test_reporter_id = getenv('CC_TEST_REPORTER_ID');
+    if (!$test_reporter_id) {
       $this->printTaskInfo('To enable codeclimate coverage uploads, please set the "CC_TEST_REPORTER_ID" environment variable to enable this feature.');
       $this->printTaskInfo('This can be found on the codeclimate repository settings page.');
       return;

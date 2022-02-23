@@ -129,10 +129,10 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
     if (!file_exists("{$this->path}/codeception.yml")) {
       $this->taskComposerRequire()
         ->dir($this->path)
-        ->arg('codeception/codeception')
-        ->arg('codeception/module-asserts')
+        ->arg('codeception/codeception:^4.0')
+        ->arg('codeception/module-asserts:^2')
         ->arg('codeception/module-phpbrowser:^1.0 || ^2.0')
-        ->arg('codeception/module-webdriver')
+        ->arg('codeception/module-webdriver:^2')
         ->run();
 
       $this->taskExec('vendor/bin/codecept')
