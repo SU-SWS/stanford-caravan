@@ -37,7 +37,7 @@
         "phpspec/prophecy-phpunit": "^2.0"
     },
     "replace": {
-        "squizlabs/php_codesniffer": "*"
+        "drupal/coder": "*"
     },
     "config": {
         "php": "7",
