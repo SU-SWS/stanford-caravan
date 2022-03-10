@@ -169,7 +169,7 @@ $settings['trusted_host_patterns'] = [
   '^.+$',
 ];
 
-$config['system.image']['toolkit'] = 'gd';
+//$config['system.image']['toolkit'] = 'gd';
 
 // Prevent errors from showing in the UI for prod & qa environments.
 $config['system.logging']['error_level'] = 'hide';
