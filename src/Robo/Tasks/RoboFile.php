@@ -61,7 +61,7 @@ class RoboFile extends Tasks {
    * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG} ${CIRCLE_WORKING_DIRECTORY}
    * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG} ${CIRCLE_WORKING_DIRECTORY} main
    */
-  public function backToDev($old_semver, $directory, $main_branch='master') {
+  public function backToDev($old_semver, $directory, $main_branch = 'master') {
     $this->setGlobalGitConfigs();
 
     list($major, $minor, $point) = explode('.', $old_semver);
