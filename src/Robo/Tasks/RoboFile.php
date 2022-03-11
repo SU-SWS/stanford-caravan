@@ -53,27 +53,30 @@ class RoboFile extends Tasks {
    *   Recently released semver tag.
    * @param string $directory
    *   Directory where the module is to be updated.
+   * @param string $main_branch
+   *   Optional name of main branch. Default is 'master'
    *
    * @command back-to-dev
    * @usage vendor/bin/sws-caravan back-to-dev 8.1.0 /var/www/stanford_module
    * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG} ${CIRCLE_WORKING_DIRECTORY}
+   * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG} ${CIRCLE_WORKING_DIRECTORY} main
    */
-  public function backToDev($old_semver, $directory) {
+  public function backToDev($old_semver, $directory, $main_branch='master') {
     $this->setGlobalGitConfigs();
 
     list($major, $minor, $point) = explode('.', $old_semver);
     $branch = "$major.x-$minor.x";
 
     // Merge master into the release branch first.
-    $tasks[] = $this->taskGitStack()->dir($directory)->checkout('master');
-    $tasks[] = $this->taskGitStack()->dir($directory)->pull('origin', 'master');
+    $tasks[] = $this->taskGitStack()->dir($directory)->checkout($main_branch);
+    $tasks[] = $this->taskGitStack()->dir($directory)->pull('origin', $main_branch);
     $tasks[] = $this->taskGitStack()->dir($directory)->checkout($branch);
     $tasks[] = $this->taskGitStack()
       ->dir($directory)
       ->exec("reset --hard origin/$branch");
     $tasks[] = $this->taskGitStack()
       ->dir($directory)
-      ->merge('--strategy-option=theirs master --no-edit');
+      ->merge("--strategy-option=theirs $main_branch --no-edit");
     $result = $this->collectionBuilder()->addTaskList($tasks)->run();
 
     if (!$result->wasSuccessful()) {
