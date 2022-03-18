@@ -2,6 +2,7 @@
 
 namespace StanfordCaravan\Robo\Tasks;
 
+use Robo\Collection\CollectionBuilder;
 use Robo\Exception\AbortTasksException;
 use Robo\Tasks;
 use StanfordCaravan\CaravanTrait;
@@ -64,24 +65,36 @@ class RoboFile extends Tasks {
   public function backToDev($old_semver, $directory, $main_branch = 'master') {
     $this->setGlobalGitConfigs();
 
-    list($major, $minor, $point) = explode('.', $old_semver);
+    [$major, $minor, $point] = explode('.', $old_semver);
     $branch = "$major.x-$minor.x";
 
     // Merge master into the release branch first.
-    $tasks[] = $this->taskGitStack()->dir($directory)->checkout($main_branch);
-    $tasks[] = $this->taskGitStack()->dir($directory)->pull('origin', $main_branch);
-    $tasks[] = $this->taskGitStack()->dir($directory)->checkout($branch);
-    $tasks[] = $this->taskGitStack()
+    $task = $this->taskGitStack()->dir($directory)->checkout($main_branch);
+    $this->runGitCommand($task);
+    $task = $this->taskGitStack()
+      ->dir($directory)
+      ->pull('origin', $main_branch);
+    $this->runGitCommand($task);
+
+    $checkout = $this->taskGitStack()
+      ->dir($directory)
+      ->checkout($branch)
+      ->run();
+
+    if (!$checkout->wasSuccessful()) {
+      $branch = "$major.x";
+      $task = $this->taskGitStack()->dir($directory)->checkout($branch);
+      $this->runGitCommand($task);
+    }
+
+    $task = $this->taskGitStack()
       ->dir($directory)
       ->exec("reset --hard origin/$branch");
-    $tasks[] = $this->taskGitStack()
+    $this->runGitCommand($task);
+    $task = $this->taskGitStack()
       ->dir($directory)
       ->merge("--strategy-option=theirs $main_branch --no-edit");
-    $result = $this->collectionBuilder()->addTaskList($tasks)->run();
-
-    if (!$result->wasSuccessful()) {
-      return $result;
-    }
+    $this->runGitCommand($task);
 
     // Adjust the versions in the yaml files.
     $info_yamls = $this->rglob("$directory/*.info.yml");
@@ -93,14 +106,10 @@ class RoboFile extends Tasks {
       file_put_contents($yaml_file, $yaml);
     }
 
-    $result = $this->taskGitStack()
+    $task = $result = $this->taskGitStack()
       ->dir($directory)
-      ->checkout("origin/$branch -- composer.json")
-      ->run();
-
-    if (!$result->wasSuccessful()) {
-      return $result;
-    }
+      ->checkout("origin/$branch -- composer.json");
+    $this->runGitCommand($task);
 
     return $this->taskGitStack()
       ->dir($directory)
@@ -108,6 +117,16 @@ class RoboFile extends Tasks {
       ->commit('Back to dev')
       ->push('origin', $branch)
       ->run();
+  }
+
+  /**
+   * @param \Robo\Collection\CollectionBuilder $task
+   */
+  protected function runGitCommand(CollectionBuilder $task) {
+    $success = $task->run();
+    if (!$success) {
+      throw new \Exception('Error Occurred');
+    }
   }
 
   /**
@@ -231,7 +250,7 @@ class RoboFile extends Tasks {
     $files = $this->rglob("$dir/*/field.storage.*");
     foreach ($files as $file) {
       $filename = basename($file);
-      list(, , $entity_type, $field_name,) = explode('.', $filename);
+      [, , $entity_type, $field_name,] = explode('.', $filename);
       if (strlen("{$entity_type}_revision__$field_name") >= 48) {
         $count = 48 - strlen("{$entity_type}_revision__");
         $errors[] = "$filename field name is too long. Keep the field name under $count characters on '$entity_type' entities.";
