@@ -249,10 +249,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
       foreach ($composer['repositories'] as &$repo) {
         if ($repo['type'] == 'composer') {
-          $repo['exclude'] = [
-            'drupal/domain_301_redirect',
-            'drupal/link_title_formatter',
-          ];
+          $repo['exclude'] = [];
         }
       }
     }
