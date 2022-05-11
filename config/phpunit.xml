@@ -19,7 +19,7 @@
 
   <php>
     <!-- Set error reporting to E_ALL. -->
-    <ini name="error_reporting" value="32767"/>
+    <ini name="error_reporting" value="22527"/>
     <!-- Do not limit the amount of memory tests take to run. -->
     <ini name="memory_limit" value="-1"/>
     <!-- Example SIMPLETEST_BASE_URL value: http://localhost -->
