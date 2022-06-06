@@ -17,11 +17,11 @@ $databases = [
     [
       'default' =>
         [
-          'database' => $db_name,
-          'username' => 'root',
-          'password' => '',
-          'host' => '127.0.0.1',
-          'port' => '3306',
+          'database' => getenv('DRUPAL_DATABASE_NAME') ?? $db_name,
+          'username' => getenv('DRUPAL_DATABASE_USERNAME') ?? 'root',
+          'password' => getenv('DRUPAL_DATABASE_PASSWORD') ?? '',
+          'host' => getenv('DRUPAL_DATABASE_HOST') ?? '127.0.0.1',
+          'port' => getenv('DRUPAL_DATABASE_PORT') ?? '3306',
           'namespace' => 'Drupal\\Core\\Database\\Driver\\mysql',
           'driver' => 'mysql',
           'prefix' => '',
