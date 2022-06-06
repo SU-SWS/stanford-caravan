@@ -84,7 +84,10 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    */
   public function run() {
     // CircleCI wait for database and reload apache.
-    $this->taskExec('dockerize -wait tcp://localhost:3306 -timeout 1m')->run();
+    if (getenv('CIRCLECI')) {
+      $this->taskExec('dockerize -wait tcp://localhost:3306 -timeout 1m')
+        ->run();
+    }
     $this->taskExec('apachectl stop; apachectl start')->run();
 
     chdir(dirname($this->path));
