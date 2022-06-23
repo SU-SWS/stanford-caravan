@@ -10,7 +10,7 @@
     ],
     "require": {
         "consolidation/robo": "^1.0 || ^2.0 || ^3.0",
-        "fzaninotto/faker": "^1.9"
+        "fakerphp/faker": "^1.19"
     },
     "bin": [
         "sws-caravan"
