@@ -125,25 +125,28 @@ class DrupalUser extends Module {
    */
   public function createUserWithRoles(array $roles = [], $password = FALSE) {
     $faker = Factory::create();
+    $success = FALSE;
+    $tries = 0;
+    while ($tries < 5) {
+      /** @var \Drupal\user\Entity\User $user */
+      try {
+        $user = \Drupal::entityTypeManager()->getStorage('user')->create([
+          'name' => $faker->userName,
+          'mail' => $faker->email,
+          'roles' => $this->getRoleMachineNames($roles),
+          'pass' => $password ? $password : $faker->password(12, 14),
+          'status' => 1,
+        ]);
 
-    /** @var \Drupal\user\Entity\User $user */
-    try {
-      $user = \Drupal::entityTypeManager()->getStorage('user')->create([
-        'name' => $faker->userName,
-        'mail' => $faker->email,
-        'roles' => $this->getRoleMachineNames($roles),
-        'pass' => $password ? $password : $faker->password(12, 14),
-        'status' => 1,
-      ]);
-
-      $user->save();
-      $this->users[] = $user->id();
+        $user->save();
+        $this->users[] = $user->id();
+        return $user;
+      }
+      catch (\Exception $e) {
+        $tries++;
+      }
     }
-    catch (\Exception $e) {
-      $this->fail(sprintf('Could not create user with roles: %s. Error: %s', implode(', ', $roles), $e->getMessage()));
-    }
-
-    return $user;
+    $this->fail(sprintf('Could not create user with roles: %s. Error: %s', implode(', ', $roles), $e->getMessage()));
   }
 
   /**
