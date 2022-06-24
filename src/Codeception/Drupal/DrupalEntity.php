@@ -110,7 +110,8 @@ class DrupalEntity extends Module {
     }
     if (!empty($entity)) {
       $this->registerTestEntity($entity->getEntityTypeId(), $entity->id());
-
+      \Drupal::service('cache_tags.invalidator')
+        ->invalidateTags([$type . '_list:' . $entity->bundle()]);
       return $entity;
     }
 
