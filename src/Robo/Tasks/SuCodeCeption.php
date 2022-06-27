@@ -4,6 +4,7 @@ namespace StanfordCaravan\Robo\Tasks;
 
 use Codeception\Task\Merger\ReportMerger;
 use Codeception\Task\Splitter\TestsSplitterTrait;
+use Robo\Common\IO;
 use Robo\Contract\BuilderAwareInterface;
 use Robo\LoadAllTasks;
 use Robo\ResultData;
@@ -16,11 +17,11 @@ use StanfordCaravan\CaravanTrait;
  * @package StanfordCaravan\Robo\Tasks
  */
 class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
-
-  use TestsSplitterTrait;
-  use ReportMerger;
-  use LoadAllTasks;
   use CaravanTrait;
+  use IO;
+  use LoadAllTasks;
+  use ReportMerger;
+  use TestsSplitterTrait;
 
   const NUMBER_OF_GROUPS = 6;
 
