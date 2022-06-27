@@ -320,6 +320,8 @@ class RoboFile extends Tasks {
    * @options test-dir Path within the extension-dir where codeception tests
    *   are.
    * @options domain Change the domain for the tests if needed.
+   * @options parallel Run tests in parallel based on file name. Use
+   *   `no-parallel` group tags to prevent individual tests from running in parallel.
    *
    * @link https://codeception.com/quickstart
    */
@@ -330,6 +332,7 @@ class RoboFile extends Tasks {
     'suites' => 'acceptance,functional',
     'test-dir' => 'tests/codeception',
     'domain' => 'localhost',
+    'parallel' => FALSE,
   ]) {
 
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
@@ -355,7 +358,8 @@ class RoboFile extends Tasks {
     $tasks[] = $this->taskCodeCeptionStack($html_path)
       ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name/{$options['test-dir']}")
       ->suites($options['suites'])
-      ->domain($options['domain']);
+      ->domain($options['domain'])
+      ->parallel($options['parallel']);
 
     return $this->collectionBuilder()
       ->addTaskList($tasks)

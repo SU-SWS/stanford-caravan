@@ -88,34 +88,34 @@ class DrupalEntity extends Module {
    *   Created entity.
    */
   public function createEntity(array $values = [], $type = 'node', $validate = FALSE) {
-    try {
-      $entity = \Drupal::entityTypeManager()
-        ->getStorage($type)
-        ->create($values);
-      if ($validate && $entity instanceof FieldableEntityInterface) {
-        $violations = $entity->validate();
-        if ($violations->count() > 0) {
-          $message = PHP_EOL;
-          foreach ($violations as $violation) {
-            $message .= $violation->getPropertyPath() . ': ' . $violation->getMessage() . PHP_EOL;
+    $tries = 0;
+    while ($tries < 3) {
+      try {
+        $entity = \Drupal::entityTypeManager()
+          ->getStorage($type)
+          ->create($values);
+        if ($validate && $entity instanceof FieldableEntityInterface) {
+          $violations = $entity->validate();
+          if ($violations->count() > 0) {
+            $message = PHP_EOL;
+            foreach ($violations as $violation) {
+              $message .= $violation->getPropertyPath() . ': ' . $violation->getMessage() . PHP_EOL;
+            }
+            throw new \Exception($message);
           }
-          throw new \Exception($message);
         }
+
+        $entity->save();
+        $this->registerTestEntity($entity->getEntityTypeId(), $entity->id());
+        \Drupal::service('cache_tags.invalidator')
+          ->invalidateTags([$type . '_list:' . $entity->bundle()]);
+        return $entity;
       }
-
-      $entity->save();
+      catch (\Exception $e) {
+        $tries++;
+      }
     }
-    catch (\Exception $e) {
-      $this->fail('Could not create entity. Error message: ' . $e->getMessage());
-    }
-    if (!empty($entity)) {
-      $this->registerTestEntity($entity->getEntityTypeId(), $entity->id());
-      \Drupal::service('cache_tags.invalidator')
-        ->invalidateTags([$type . '_list:' . $entity->bundle()]);
-      return $entity;
-    }
-
-    return FALSE;
+    $this->fail('Could not create entity. Error message: ' . $e->getMessage());
   }
 
   /**
