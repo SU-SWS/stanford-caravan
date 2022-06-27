@@ -21,7 +21,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   use ReportMerger;
   use LoadAllTasks;
   use CaravanTrait;
-  
+
   const NUMBER_OF_GROUPS = 6;
 
   /**
@@ -30,6 +30,13 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    * @var string
    */
   protected $path;
+
+  /**
+   * Path to codeception executable.
+   *
+   * @var string
+   */
+  protected $codeceptPath;
 
   /**
    * Codeception suite to execute.
@@ -67,6 +74,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    */
   public function __construct($root_path) {
     $this->path = $root_path;
+    $this->codeceptPath = "{$this->path}/vendor/bin/codecept";
   }
 
   /**
@@ -184,10 +192,9 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
     return $failed_test;
   }
 
-  public function runSequentialTests($suite){
-    $test = $this->taskCodecept()
+  public function runSequentialTests($suite) {
+    $test = $this->taskCodecept($this->codeceptPath)
       ->dir($this->path)
-      ->arg('run')
       ->suite($suite)
       ->html('html')
       ->xml('xml')
@@ -195,9 +202,8 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
       ->run();
     if (!$test->wasSuccessful()) {
-      return $this->taskCodecept()
+      return $this->taskCodecept($this->codeceptPath)
         ->dir($this->path)
-        ->arg('run')
         ->suite($suite)
         ->group('failed')
         ->html('html')
@@ -230,34 +236,34 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
     $parallel = $this->taskParallelExec();
     for ($i = 1; $i <= self::NUMBER_OF_GROUPS; $i++) {
       $parallel->process(
-        $this->taskCodecept()
+        $this->taskCodecept($this->codeceptPath)
           ->dir($this->path)
           ->suite($suite)
           ->group("paracept_$i")
           ->excludeGroup('no-parallel')
           ->html("_log/html/result_$i.html")
           ->xml("_log/xml/result_$i.xml")
+          ->failGroup("failed_$i")
           ->option('steps')
           ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
-          ->option('override', "extensions: config: Codeception\Extension\RunFailed: fail-group: failed_$i")
       );
     }
     $parallel_result = $parallel->run();
-    $no_parallel_results = $this->taskCodecept()
+    $no_parallel_results = $this->taskCodecept($this->codeceptPath)
       ->dir($this->path)
       ->suite($suite)
       ->group('no-parallel')
       ->html('_log/html/no-parallel.html')
       ->xml('_log/xml/no-parallel.xml')
+      ->failGroup('no-parallel')
       ->option('steps')
       ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
-      ->option('override', "extensions: config: Codeception\Extension\RunFailed: fail-group: failed_$i")
       ->run();
 
     $this->mergeParallelResults($suite);
     if (!$parallel_result->wasSuccessful() || !$no_parallel_result->wasSuccessful()) {
       $this->say('Retrying failed tests');
-      $no_parallel_result = $this->taskCodecept()
+      $no_parallel_result = $this->taskCodecept($this->codeceptPath)
         ->configFile('tests')
         ->group('failed')
         ->suite($suite)
