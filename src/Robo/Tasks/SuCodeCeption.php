@@ -221,7 +221,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   public function splitTests() {
     $this->taskComposerRequire()
       ->arg('codeception/codeception:^4.0')
-      ->option('global')
+      ->arg('global')
       ->run();
     $this->taskSplitTestFilesByGroups(self::NUMBER_OF_GROUPS)
       ->projectRoot($this->path)
