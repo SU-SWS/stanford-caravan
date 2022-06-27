@@ -265,11 +265,10 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
     if (!$parallel_result->wasSuccessful() || !$no_parallel_result->wasSuccessful()) {
       $this->say('Retrying failed tests');
       $no_parallel_result = $this->taskCodecept($this->codeceptPath)
-        ->configFile('tests')
+        ->dir($this->path)
         ->group('failed')
-        ->suite($suite)
         ->option('steps')
-        ->option('override', 'paths: output: ../artifacts/$suite', '=')
+        ->option('override', "paths: output: ../artifacts/$suite", '=')
         ->html('_log/html/retry.html')
         ->xml('_log/xml/retry.xml')
         ->run();
