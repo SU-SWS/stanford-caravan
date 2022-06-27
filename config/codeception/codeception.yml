@@ -11,7 +11,7 @@ extensions:
   enabled:
     - Codeception\Extension\RunFailed
 groups:
-  paracept_*: _data/paracept_*
+  paracept_*: tests/_data/paracept_*
 modules:
   enabled:
     - Codeception\Module\Asserts
