@@ -10,7 +10,8 @@
     ],
     "require": {
         "consolidation/robo": "^1.0 || ^2.0 || ^3.0",
-        "fakerphp/faker": "^1.19"
+        "fakerphp/faker": "^1.19",
+        "codeception/robo-paracept": "^2.0"
     },
     "bin": [
         "sws-caravan"
