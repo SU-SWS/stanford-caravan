@@ -10,6 +10,8 @@ settings:
 extensions:
   enabled:
     - Codeception\Extension\RunFailed
+groups:
+  paracept_*: _data/paracept_*
 modules:
   enabled:
     - Codeception\Module\Asserts
