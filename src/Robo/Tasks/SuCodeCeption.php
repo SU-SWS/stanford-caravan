@@ -266,6 +266,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       $this->say('Retrying failed tests');
       $no_parallel_result = $this->taskCodecept($this->codeceptPath)
         ->dir($this->path)
+        ->suite($suite)
         ->group('failed')
         ->option('steps')
         ->option('override', "paths: output: ../artifacts/$suite", '=')
