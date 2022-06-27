@@ -249,7 +249,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       );
     }
     $parallel_result = $parallel->run();
-    $no_parallel_results = $this->taskCodecept($this->codeceptPath)
+    $no_parallel_result = $this->taskCodecept($this->codeceptPath)
       ->dir($this->path)
       ->suite($suite)
       ->group('no-parallel')
