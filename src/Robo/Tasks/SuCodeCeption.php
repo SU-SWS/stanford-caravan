@@ -2,7 +2,6 @@
 
 namespace StanfordCaravan\Robo\Tasks;
 
-use League\Container\ContainerAwareTrait;
 use Robo\Contract\BuilderAwareInterface;
 use Robo\LoadAllTasks;
 use Robo\Task\BaseTask;
@@ -15,9 +14,10 @@ use StanfordCaravan\CaravanTrait;
  */
 class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
 
-  use ContainerAwareTrait;
-  use LoadAllTasks;
   use CaravanTrait;
+  use LoadAllTasks;
+
+  const NUMBER_OF_GROUPS = 6;
 
   /**
    * Root path of the composer installation.
@@ -25,6 +25,13 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    * @var string
    */
   protected $path;
+
+  /**
+   * Path to codeception executable.
+   *
+   * @var string
+   */
+  protected $codeceptPath;
 
   /**
    * Codeception suite to execute.
@@ -48,6 +55,13 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   protected $testDir;
 
   /**
+   * If the tests should be executed in parallel.
+   *
+   * @var bool
+   */
+  protected $parallel = FALSE;
+
+  /**
    * SuCodeCeption constructor.
    *
    * @param string $root_path
@@ -55,6 +69,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    */
   public function __construct($root_path) {
     $this->path = $root_path;
+    $this->codeceptPath = "{$this->path}/vendor/bin/codecept";
   }
 
   /**
@@ -85,6 +100,10 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    */
   public function domain($domain) {
     $this->domain = $domain;
+  }
+
+  public function parallel($parallel = FALSE) {
+    $this->parallel = $parallel;
   }
 
   /**
@@ -123,6 +142,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    *   Result of the test.
    */
   public function run() {
+
     if (!file_exists($this->testDir)) {
       return;
     }
@@ -133,6 +153,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         ->arg('codeception/module-asserts:^2')
         ->arg('codeception/module-phpbrowser:^1.0 || ^2.0')
         ->arg('codeception/module-webdriver:^2')
+        ->arg('codeception/robo-paracept:^2')
         ->run();
 
       $this->taskExec('vendor/bin/codecept')
@@ -141,25 +162,55 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         ->run();
     }
     file_put_contents("{$this->path}/codeception.yml", $this->getCodeceptionConfig());
-
-    $tasks[] = $this->taskRsync()
+    $this->taskRsync()
       ->fromPath("{$this->testDir}/")
       ->toPath("{$this->path}/tests/")
-      ->recursive();
+      ->recursive()
+      ->run();
 
+    $return_result = NULL;
     foreach ($this->suites as $suite) {
       file_put_contents("{$this->path}/tests/{$suite}.suite.yml", $this->getSuiteConfig($suite));
 
-      $tasks[] = $this->taskExec('vendor/bin/codecept')
-        ->dir($this->path)
-        ->arg('run')
-        ->arg($suite)
-        ->option('steps')
-        ->option('html')
-        ->option('xml')
-        ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=');
+      $result = $this->runSequentialTests($suite);
+      if ($result->wasSuccessful()) {
+        continue;
+      }
+      $return_result = $result;
     }
-    return $this->collectionBuilder()->addTaskList($tasks)->run();
+    return $return_result;
+  }
+
+  /**
+   * Run tests like normal.
+   *
+   * @param string $suite
+   *   Test suite.
+   *
+   * @return \Robo\Result
+   *   Test result.
+   */
+  public function runSequentialTests($suite) {
+    $test = $this->taskCodecept($this->codeceptPath)
+      ->dir($this->path)
+      ->suite($suite)
+      ->html('html')
+      ->xml('xml')
+      ->option('steps')
+      ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
+      ->run();
+    if (!$test->wasSuccessful()) {
+      return $this->taskCodecept($this->codeceptPath)
+        ->dir($this->path)
+        ->suite($suite)
+        ->group('failed')
+        ->html('html')
+        ->xml('xml')
+        ->option('steps')
+        ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
+        ->run();
+    }
+    return $test;
   }
 
 }
