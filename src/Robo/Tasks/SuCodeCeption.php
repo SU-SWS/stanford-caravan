@@ -245,8 +245,8 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
           ->html("_log/html/result_$i.html")
           ->xml("_log/xml/result_$i.xml")
           ->failGroup("failed_$i")
-          ->option('steps')
           ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
+          ->option('steps')
       );
     }
     $parallel_result = $parallel->run();
@@ -257,8 +257,8 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       ->html('_log/html/no-parallel.html')
       ->xml('_log/xml/no-parallel.xml')
       ->failGroup('no-parallel')
-      ->option('steps')
       ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
+      ->option('steps')
       ->run();
 
     $this->mergeParallelResults($suite);
@@ -268,10 +268,11 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         ->dir($this->path)
         ->suite($suite)
         ->group('failed')
-        ->option('steps')
-        ->option('override', "paths: output: ../artifacts/$suite", '=')
         ->html('_log/html/retry.html')
         ->xml('_log/xml/retry.xml')
+        ->failGroup('retry')
+        ->option('override', "paths: output: ../artifacts/$suite", '=')
+        ->option('steps')
         ->run();
       return $no_parallel_result;
     }
@@ -294,10 +295,13 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
 
     $xml_merge->from("{$this->path}/artifacts/$suite/_log/xml/no-parallel.xml");
     $html_merge->from("{$this->path}/artifacts/$suite/_log/html/no-parallel.html");
-    $failed_merge->from("{$this->path}/artifacts/$suite/failed");
+    $failed_merge->from("{$this->path}/artifacts/$suite/no-parallel");
 
+    $this->say('Merging XML');
     $xml_merge->into("{$this->path}/artifacts/$suite/result.xml")->run();
+    $this->say('Merging HTML');
     $html_merge->into("{$this->path}/artifacts/$suite/result.html")->run();
+    $this->say('Merging Failed Reports');
     $failed_merge->into("{$this->path}/artifacts/$suite/failed")->run();
   }
 
