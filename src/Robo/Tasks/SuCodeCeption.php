@@ -214,11 +214,14 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       $result_markup = file_get_contents("{$this->path}/artifacts/$suite/retry.html");
     }
     if ($gh_summary = getenv('GITHUB_STEP_SUMMARY')) {
+      libxml_use_internal_errors(TRUE);
+
       $markdown_converter = new HtmlConverter();
       $dom = new \DOMDocument();
       $dom->loadHTML($result_markup);
+      $xpath = new \DOMXPath($dom);
       $body = $xpath->query('//body');
-      file_put_contents($gh_summary, $markdown_converter->convert($body[0]->nodeValue));
+      file_put_contents($gh_summary, (string) $markdown_converter->convert($body[0]->nodeValue));
     }
     return $test;
   }
