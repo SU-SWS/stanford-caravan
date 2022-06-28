@@ -194,21 +194,25 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
     $test = $this->taskCodecept($this->codeceptPath)
       ->dir($this->path)
       ->suite($suite)
-      ->html('html')
-      ->xml('xml')
+      ->html('results.html')
+      ->xml('results.xml')
       ->option('steps')
       ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
       ->run();
     if (!$test->wasSuccessful()) {
-      return $this->taskCodecept($this->codeceptPath)
+      $test = $this->taskCodecept($this->codeceptPath)
         ->dir($this->path)
         ->suite($suite)
         ->group('failed')
-        ->html('html')
-        ->xml('xml')
+        ->html('retry.html')
+        ->xml('retry.xml')
         ->option('steps')
         ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
         ->run();
+      if($gh_summary = getenv('GITHUB_STEP_SUMMARY')){
+        $markup_converter = new
+        file_put_contents()
+      }
     }
     return $test;
   }
