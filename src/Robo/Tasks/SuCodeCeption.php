@@ -17,6 +17,7 @@ use StanfordCaravan\CaravanTrait;
  * @package StanfordCaravan\Robo\Tasks
  */
 class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
+
   use CaravanTrait;
   use IO;
   use LoadAllTasks;
@@ -270,7 +271,6 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         ->group('failed')
         ->html('_log/html/retry.html')
         ->xml('_log/xml/retry.xml')
-        ->failGroup('retry')
         ->option('override', "paths: output: ../artifacts/$suite", '=')
         ->option('steps')
         ->run();
