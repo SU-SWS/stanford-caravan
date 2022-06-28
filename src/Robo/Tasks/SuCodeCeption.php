@@ -2,6 +2,7 @@
 
 namespace StanfordCaravan\Robo\Tasks;
 
+use League\HTMLToMarkdown\HtmlConverter;
 use Robo\Contract\BuilderAwareInterface;
 use Robo\LoadAllTasks;
 use Robo\Task\BaseTask;
@@ -199,6 +200,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       ->option('steps')
       ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
       ->run();
+    $result_markup = file_get_contents("{$this->path}/artifacts/$suite/results.html");
     if (!$test->wasSuccessful()) {
       $test = $this->taskCodecept($this->codeceptPath)
         ->dir($this->path)
@@ -209,10 +211,11 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         ->option('steps')
         ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
         ->run();
-      if($gh_summary = getenv('GITHUB_STEP_SUMMARY')){
-        $markup_converter = new
-        file_put_contents()
-      }
+      $result_markup = file_get_contents("{$this->path}/artifacts/$suite/retry.html");
+    }
+    if ($gh_summary = getenv('GITHUB_STEP_SUMMARY')) {
+      $markdown_converter = new HtmlConverter();
+      file_put_contents($gh_summary, $markdown_converter->convert($result_markup));
     }
     return $test;
   }
