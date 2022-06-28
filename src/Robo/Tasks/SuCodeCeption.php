@@ -179,16 +179,21 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
     foreach ($this->suites as $suite) {
       file_put_contents("{$this->path}/tests/{$suite}.suite.yml", $this->getSuiteConfig($suite));
 
-      if (!$this->parallel) {
+      if ($this->parallel) {
+        $this->say('Not currently working to run in parallel.');
+        //$this->parallel = FALSE;
+      }
+
+      if ($this->parallel) {
+        $this->splitTests();
+        return $this->runParallelTests();
+      }
+      else {
         $result = $this->runSequentialTests($suite);
         if ($result->wasSuccessful()) {
           continue;
         }
         $failed_test = $result;
-      }
-      else {
-        $this->splitTests();
-        return $this->runParallelTests();
       }
     }
     return $failed_test;
@@ -229,9 +234,9 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   }
 
   /**
-   * @command codeception:parallel
+   * Split the tests into groups and run them in parallel.
    */
-  public function runParallelTests() {
+  public function runParallelTests($suite) {
     // For now, only acceptance suite has been tested.
     $suite = 'acceptance';
 
@@ -303,6 +308,8 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
     $html_merge->into("{$this->path}/artifacts/$suite/result.html")->run();
     $this->say('Merging Failed Reports');
     $failed_merge->into("{$this->path}/artifacts/$suite/failed")->run();
+
+    copy("{$this->path}/artifacts/$suite/failed", "{$this->path}/artifacts/failed");
   }
 
 }
