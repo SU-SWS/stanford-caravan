@@ -215,7 +215,10 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
     }
     if ($gh_summary = getenv('GITHUB_STEP_SUMMARY')) {
       $markdown_converter = new HtmlConverter();
-      file_put_contents($gh_summary, $markdown_converter->convert($result_markup));
+      $dom = new \DOMDocument();
+      $dom->loadHTML($result_markup);
+      $body = $xpath->query('//body');
+      file_put_contents($gh_summary, $markdown_converter->convert($body[0]->nodeValue));
     }
     return $test;
   }
