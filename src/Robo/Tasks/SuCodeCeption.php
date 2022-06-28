@@ -256,7 +256,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       ->group('no-parallel')
       ->html('_log/html/no-parallel.html')
       ->xml('_log/xml/no-parallel.xml')
-      ->failGroup('no-parallel')
+      ->failGroup('not-paralleled')
       ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
       ->option('steps')
       ->run();
@@ -295,7 +295,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
 
     $xml_merge->from("{$this->path}/artifacts/$suite/_log/xml/no-parallel.xml");
     $html_merge->from("{$this->path}/artifacts/$suite/_log/html/no-parallel.html");
-    $failed_merge->from("{$this->path}/artifacts/$suite/no-parallel");
+    $failed_merge->from("{$this->path}/artifacts/$suite/not-paralleled");
 
     $this->say('Merging XML');
     $xml_merge->into("{$this->path}/artifacts/$suite/result.xml")->run();
