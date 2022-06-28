@@ -2,6 +2,7 @@
 
 namespace StanfordCaravan\Robo\Tasks;
 
+use League\HTMLToMarkdown\HtmlConverter;
 use Robo\Contract\BuilderAwareInterface;
 use Robo\LoadAllTasks;
 use Robo\Task\BaseTask;
@@ -194,21 +195,34 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
     $test = $this->taskCodecept($this->codeceptPath)
       ->dir($this->path)
       ->suite($suite)
-      ->html('html')
-      ->xml('xml')
+      ->html('results.html')
+      ->xml('results.xml')
       ->option('steps')
       ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
       ->run();
+    $result_markup = file_get_contents("{$this->path}/artifacts/$suite/results.html");
     if (!$test->wasSuccessful()) {
-      return $this->taskCodecept($this->codeceptPath)
+      $test = $this->taskCodecept($this->codeceptPath)
         ->dir($this->path)
         ->suite($suite)
         ->group('failed')
-        ->html('html')
-        ->xml('xml')
+        ->html('retry.html')
+        ->xml('retry.xml')
         ->option('steps')
         ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
         ->run();
+      $result_markup = file_get_contents("{$this->path}/artifacts/$suite/retry.html");
+    }
+    if ($gh_summary = getenv('GITHUB_STEP_SUMMARY')) {
+      libxml_use_internal_errors(TRUE);
+      $markdown_converter = new HtmlConverter();
+      $dom = new \DOMDocument();
+      $dom->loadHTML($result_markup);
+      $xpath = new \DOMXPath($dom);
+
+      /** @var \DOMElement[] $body */
+      $body = $xpath->query('//body');
+      file_put_contents($gh_summary, $markdown_converter->convert($dom->saveHTML($body[0])));
     }
     return $test;
   }
