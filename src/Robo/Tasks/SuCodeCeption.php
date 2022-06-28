@@ -184,9 +184,10 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         //$this->parallel = FALSE;
       }
 
-      if ($this->parallel) {
+      // For now, only acceptance suite has been tested.
+      if ($this->parallel && $suite == 'acceptance') {
         $this->splitTests();
-        return $this->runParallelTests();
+        return $this->runParallelTests($suite);
       }
       else {
         $result = $this->runSequentialTests($suite);
@@ -237,8 +238,6 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    * Split the tests into groups and run them in parallel.
    */
   public function runParallelTests($suite) {
-    // For now, only acceptance suite has been tested.
-    $suite = 'acceptance';
 
     $parallel = $this->taskParallelExec();
     for ($i = 1; $i <= self::NUMBER_OF_GROUPS; $i++) {
