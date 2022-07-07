@@ -171,9 +171,7 @@ $settings['trusted_host_patterns'] = [
 
 //$config['system.image']['toolkit'] = 'gd';
 
-// Prevent errors from showing in the UI for prod & qa environments.
-$config['system.logging']['error_level'] = 'hide';
-error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+error_reporting(E_ALL & ~E_DEPRECATED);
 
 // Print errors on WSOD.
 ini_set('display_errors', TRUE);
