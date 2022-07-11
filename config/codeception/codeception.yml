@@ -24,6 +24,7 @@ modules:
     - PhpBrowser:
         url: 'http://localhost/'
     - WebDriver:
+        debug_log_entries: 10
         browser: chrome
         url: 'http://localhost/'
     - StanfordCaravan\Codeception\Drupal\DrupalEntity:
