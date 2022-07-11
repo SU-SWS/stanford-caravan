@@ -24,6 +24,8 @@ modules:
     - PhpBrowser:
         url: 'http://localhost/'
     - WebDriver:
+        wait: 1
+        log_js_errors: true
         debug_log_entries: 10
         browser: chrome
         url: 'http://localhost/'
