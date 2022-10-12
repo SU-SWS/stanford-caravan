@@ -18,13 +18,3 @@ modules:
   disabled:
     - PhpBrowser
   step_decorators: ~
-
-env:
-  github_actions:
-    modules:
-      config:
-        WebDriver:
-          url: 'http://drupal8ci/'
-          browser: chrome
-          host: selenium
-          port: 4444
