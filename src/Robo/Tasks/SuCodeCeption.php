@@ -210,8 +210,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
     if ($environment) {
       $test->option('env', implode(',', $environment), '=');
     }
-
-    $test = $test->run();
+    $test->run();
     $result_markup = file_get_contents("{$this->path}/artifacts/$suite/results.html");
     if (!$test->wasSuccessful()) {
       $test = $this->taskCodecept($this->codeceptPath)
@@ -226,7 +225,7 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       if ($environment) {
         $test->option('env', implode(',', $environment), '=');
       }
-      $test = $test->run();
+      $test->run();
       $result_markup = file_get_contents("{$this->path}/artifacts/$suite/retry.html");
     }
     if ($gh_summary = getenv('GITHUB_STEP_SUMMARY')) {
