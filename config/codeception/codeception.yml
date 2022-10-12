@@ -50,8 +50,7 @@ modules:
         cleanup_failed: false
         cleanup_suite: true
 env:
-  ci:
-    modules: {}
+  ci: {  }
   github_actions:
     modules:
       config:
