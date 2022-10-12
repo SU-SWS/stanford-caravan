@@ -198,8 +198,20 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       ->html('results.html')
       ->xml('results.xml')
       ->option('steps')
-      ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
-      ->run();
+      ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=');
+
+    $environment = [];
+    if (getenv('CI')) {
+      $environment[] = 'ci';
+    }
+    if (getenv('GITHUB_ACTIONS')) {
+      $environment[] = 'github_actions';
+    }
+    if ($environment) {
+      $test->option('env', implode(',', $environment), '=');
+    }
+
+    $test = $test->run();
     $result_markup = file_get_contents("{$this->path}/artifacts/$suite/results.html");
     if (!$test->wasSuccessful()) {
       $test = $this->taskCodecept($this->codeceptPath)
@@ -209,8 +221,12 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         ->html('retry.html')
         ->xml('retry.xml')
         ->option('steps')
-        ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=')
-        ->run();
+        ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=');
+
+      if ($environment) {
+        $test->option('env', implode(',', $environment), '=');
+      }
+      $test = $test->run();
       $result_markup = file_get_contents("{$this->path}/artifacts/$suite/retry.html");
     }
     if ($gh_summary = getenv('GITHUB_STEP_SUMMARY')) {
