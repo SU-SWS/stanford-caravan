@@ -366,7 +366,7 @@ class DrushStack extends CommandStack {
    * @return $this
    */
   public function siteInstall($installationProfile) {
-    return $this->drush('site-install ' . $installationProfile);
+    return $this->drush('site-install ' . $installationProfile . ' -v');
   }
 
 }
