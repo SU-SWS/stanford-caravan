@@ -173,7 +173,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       ->printOutput(FALSE)
       ->run()
       ->getMessage();
-    $versions = json_decode($versions, TRUE);
+    $versions = json_decode($versions, TRUE, 512, JSON_THROW_ON_ERROR);
 
     // Find the caravan package and require that version.
     foreach ($versions['installed'] as $package) {
@@ -209,7 +209,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       ->printOutput(FALSE)
       ->run()
       ->getMessage();
-    $versions = json_decode($versions, TRUE);
+    $versions = json_decode($versions, TRUE, 512, JSON_THROW_ON_ERROR);
     $installed_version = $versions['installed'] ?? [];
     foreach ($installed_version as $package) {
       if ($package['name'] == 'su-sws/stanford-caravan') {
@@ -228,9 +228,9 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
   protected function addComposer($file_to_merge) {
     $composer_path = "{$this->path}/composer.json";
     $composer_path = str_replace('//', '/', $composer_path);
-    $composer = json_decode(file_get_contents($composer_path), TRUE);
+    $composer = json_decode(file_get_contents($composer_path), TRUE, 512, JSON_THROW_ON_ERROR);
 
-    $composer_to_add = json_decode(file_get_contents($file_to_merge), TRUE);
+    $composer_to_add = json_decode(file_get_contents($file_to_merge), TRUE, 512, JSON_THROW_ON_ERROR);
 
     $merge_keys = ['extra', 'require', 'require-dev', 'config', 'replace'];
     foreach ($merge_keys as $merge_key) {
