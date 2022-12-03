@@ -226,7 +226,8 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    *   Composer.json path to be merged.
    */
   protected function addComposer($file_to_merge) {
-    $composer_path = "{$this->path}/composer.json";
+    
+    $composer_path = (is_file("{$this->path}/composer.json")) ? "{$this->path}/composer.json" : '';
     $composer_path = str_replace('//', '/', $composer_path);
     $composer = json_decode(file_get_contents($composer_path), TRUE, 512, JSON_THROW_ON_ERROR);
 
