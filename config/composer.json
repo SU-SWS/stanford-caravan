@@ -14,8 +14,8 @@
     "require": {
         "php": ">=7.1",
         "cweagans/composer-patches": "^1.6",
-        "drupal/core": "^9.0",
-        "drush/drush": "^10.2",
+        "drupal/core": "~9.4.0",
+        "drush/drush": "^11.0",
         "su-sws/stanford-caravan": "dev-8.x-2.x"
     },
     "require-dev": {
