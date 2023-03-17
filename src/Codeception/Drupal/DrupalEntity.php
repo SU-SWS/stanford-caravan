@@ -91,6 +91,13 @@ class DrupalEntity extends Module {
     $tries = 0;
     while ($tries < 3) {
       try {
+        /** @var \Drupal\Core\Entity\EntityTypeInterface $entity_definition */
+        $entity_definition = \Drupal::entityTypeManager()->getDefinition($type);
+        // ALways publish entities, unless the user specifically said not to.
+        if ($status_key = $entity_definition->getKey('status')) {
+          $values[$status_key] = isset($values[$status_key]) ? $values[$status_key] : TRUE;
+        }
+
         $entity = \Drupal::entityTypeManager()
           ->getStorage($type)
           ->create($values);
