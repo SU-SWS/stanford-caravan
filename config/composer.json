@@ -19,11 +19,18 @@
         "su-sws/stanford-caravan": "dev-8.x-2.x"
     },
     "require-dev": {
-        "drupal/core-dev": "^9.0",
+        "drupal/core-dev": "^9.4.0",
         "phpspec/prophecy-phpunit": "^2.0"
     },
     "replace": {
         "drupal/coder": "*"
+    },
+    "conflict": {
+        "drupal/core": ">=9.5.0",
+        "drupal/core-dev": ">=9.5.0",
+        "drupal/core-composer-scaffold": ">=9.5.0",
+        "symfony/string": ">=6.0",
+        "drupal/real_aes": ">=2.5"
     },
     "config": {
         "php": "7",
