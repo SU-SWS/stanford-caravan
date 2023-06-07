@@ -111,12 +111,11 @@ class RoboFile extends Tasks {
       ->checkout("origin/$branch -- composer.json");
     $this->runGitCommand($task);
 
-    return $this->taskGitStack()
+    $this->taskGitStack()
       ->dir($directory)
       ->add('.')
-      ->commit('Back to dev')
-      ->push('origin', $branch)
-      ->run();
+      ->commit('Back to dev');
+    return $this->taskGitStack()->push('origin', $branch)->run();
   }
 
   /**
