@@ -71,7 +71,8 @@
                 "type:component",
                 "ckeditor/ckeditor",
                 "enyo/dropzone",
-                "components/jquery"
+                "components/jquery",
+                "harvesthq/chosen"
             ],
             "vendor/{$vendor}/{$name}/": [
                 "type:library"
