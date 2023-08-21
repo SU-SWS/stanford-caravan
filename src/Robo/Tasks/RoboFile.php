@@ -20,8 +20,7 @@ class RoboFile extends Tasks {
   /**
    * RoboFile constructor.
    */
-  public function __construct() {
-  }
+  public function __construct() {}
 
   /**
    * Set the global git configs if they aren't already set.
@@ -146,8 +145,8 @@ class RoboFile extends Tasks {
     'extension-dir' => NULL,
     'with-coverage' => FALSE,
     'coverage-required' => 90,
-  ]) {
-
+  ]
+  ) {
     if (empty($options['extension-dir'])) {
       throw new AbortTasksException('--extension-dir is required');
     }
@@ -227,7 +226,7 @@ class RoboFile extends Tasks {
       'install',
     ];
 
-    array_walk($php_lint_extenstions, function (&$extension) {
+    array_walk($php_lint_extenstions, function(&$extension) {
       $extension = "-name '*.$extension'";
     });
     $php_lint_extenstions = implode(' -o ', $php_lint_extenstions);
@@ -283,18 +282,6 @@ class RoboFile extends Tasks {
       ->dir($drupal_root)
       ->siteInstall($profile);
 
-    if ($enable_modules) {
-      $tasks[] = $this->taskDrushStack("../vendor/bin/drush")
-        ->dir($drupal_root)
-        ->drush("pm:enable " . implode(',', $enable_modules));
-    }
-
-    if ($disable_modules) {
-      $tasks[] = $this->taskDrushStack("../vendor/bin/drush")
-        ->dir($drupal_root)
-        ->drush('pm:uninstall ' . implode(',', $disable_modules));
-    }
-
     $tasks[] = $this->taskDrushStack("../vendor/bin/drush")
       ->dir($drupal_root)
       ->drush('cache-rebuild');
@@ -329,8 +316,8 @@ class RoboFile extends Tasks {
     'suites' => 'acceptance,functional',
     'test-dir' => 'tests/codeception',
     'domain' => 'localhost',
-  ]) {
-
+  ]
+  ) {
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
     $tasks[] = $this->taskDrupalStack($html_path)
       ->testExtension($extension_dir);
@@ -351,13 +338,31 @@ class RoboFile extends Tasks {
     }
 
     $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules, $disable_modules));
-    $tasks[] = $this->taskCodeCeptionStack($html_path)
+    $task_results = $this->collectionBuilder()->addTaskList($tasks)->run();
+    if (!$task_results->wasSuccessful()) {
+      return $task_results;
+    }
+
+    foreach ($enable_modules as $module) {
+      $this->taskDrushStack("../vendor/bin/drush")
+        ->dir("$html_path/web")
+        ->drush('en')
+        ->arg($module)
+        ->run();
+    }
+
+    foreach ($disable_modules as $module) {
+      $this->taskDrushStack("../vendor/bin/drush")
+        ->dir("$html_path/web")
+        ->drush('pmu')
+        ->arg($module)
+        ->run();
+    }
+
+    return $this->taskCodeCeptionStack($html_path)
       ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name/{$options['test-dir']}")
       ->suites($options['suites'])
-      ->domain($options['domain']);
-
-    return $this->collectionBuilder()
-      ->addTaskList($tasks)
+      ->domain($options['domain'])
       ->run();
   }
 
