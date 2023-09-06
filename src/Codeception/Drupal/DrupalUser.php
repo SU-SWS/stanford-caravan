@@ -192,6 +192,8 @@ class DrupalUser extends Module {
     $gen_url = str_replace(PHP_EOL, '', $output);
     $url = substr($gen_url, strpos($gen_url, '/user/reset'));
     $this->driver->amOnPage($url);
+    $this->driver->see('You have just used your one-time login link.');
+    $this->driver->see($username, 'h1');
   }
 
   /**
@@ -204,7 +206,8 @@ class DrupalUser extends Module {
    *   User object.
    */
   public function logInWithRole($role) {
-    $user = $this->createUserWithRoles([$role], Factory::create()
+    $roles = array_filter(explode(',', $role));
+    $user = $this->createUserWithRoles($roles, Factory::create()
       ->password(12, 14));
     $this->logInAs($user->getDisplayName());
 
