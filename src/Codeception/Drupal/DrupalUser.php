@@ -182,20 +182,22 @@ class DrupalUser extends Module {
    *   User name or user id.
    */
   public function logInAs($username) {
-    if ((int) $username) {
-      $command = sprintf('uli --uid=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
+    // Ensure a logged out user.
+    $this->driver->amOnPage('/user/logout');
+    if ((int) $username == $username) {
+      // Get the username for validation later.
+      $command = sprintf('uinf --uid=%s --fields=name --format=string --uri=%s', $username, $this->drushConfig['options']['uri']);
+      $username = Drush::runDrush($command, $this->_getConfig('drush'), $this->_getConfig('working_directory'));
     }
-    else {
-      $command = sprintf('uli --name=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
-    }
+
+    $command = sprintf('uli --name=%s --uri=%s --no-browser', $username, $this->drushConfig['options']['uri']);
     $output = Drush::runDrush($command, $this->_getConfig('drush'), $this->_getConfig('working_directory'));
     $gen_url = str_replace(PHP_EOL, '', $output);
     $url = substr($gen_url, strpos($gen_url, '/user/reset'));
+
     $this->driver->amOnPage($url);
     $this->driver->see('You have just used your one-time login link.');
-    if (!(int) $username) {
-      $this->driver->see($username, 'h1');
-    }
+    $this->driver->see($username, 'h1');
   }
 
   /**
