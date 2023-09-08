@@ -58,8 +58,10 @@ class RoboFile extends Tasks {
    *
    * @command back-to-dev
    * @usage vendor/bin/sws-caravan back-to-dev 8.1.0 /var/www/stanford_module
-   * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG} ${CIRCLE_WORKING_DIRECTORY}
-   * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG} ${CIRCLE_WORKING_DIRECTORY} main
+   * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG}
+   *   ${CIRCLE_WORKING_DIRECTORY}
+   * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG}
+   *   ${CIRCLE_WORKING_DIRECTORY} main
    */
   public function backToDev($old_semver, $directory, $main_branch = 'master') {
     $this->setGlobalGitConfigs();
@@ -266,15 +268,11 @@ class RoboFile extends Tasks {
    *   Drupal web root directory.
    * @param string $profile
    *   Profile to install.
-   * @param array $enable_modules
-   *   Array of modules to enable after installation.
-   * @param array $disable_modules
-   *   Which modules to disable after installing drupal.
    *
    * @return array
    *   Array of tasks to be executed.
    */
-  protected function installDrupal($drupal_root, $profile, array $enable_modules = [], array $disable_modules = []) {
+  protected function installDrupal($drupal_root, $profile) {
     $tasks[] = $this->taskWriteToFile("$drupal_root/sites/default/settings.php")
       ->textFromFile("{$this->toolDir()}/config/circleci.settings.php");
 
@@ -329,15 +327,12 @@ class RoboFile extends Tasks {
     $enable_modules = explode(',', $options['modules']);
     $enable_modules[] = $extension_name;
     $enable_modules = array_values(array_unique(array_filter($enable_modules)));
-    $disable_modules = [];
 
     if ($extension_type == 'profile') {
       $profile = $extension_name;
-      $enable_modules = [];
-      $disable_modules[] = "simplesamlphp_auth";
     }
 
-    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile, $enable_modules, $disable_modules));
+    $tasks = array_merge($tasks, $this->installDrupal("$html_path/web", $profile));
     $task_results = $this->collectionBuilder()->addTaskList($tasks)->run();
     if (!$task_results->wasSuccessful()) {
       return $task_results;
@@ -347,14 +342,6 @@ class RoboFile extends Tasks {
       $this->taskDrushStack("../vendor/bin/drush")
         ->dir("$html_path/web")
         ->drush('en')
-        ->arg($module)
-        ->run();
-    }
-
-    foreach ($disable_modules as $module) {
-      $this->taskDrushStack("../vendor/bin/drush")
-        ->dir("$html_path/web")
-        ->drush('pmu')
         ->arg($module)
         ->run();
     }

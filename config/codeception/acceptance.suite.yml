@@ -7,7 +7,6 @@
 actor: AcceptanceTester
 modules:
   enabled:
-    - \Helper\Acceptance
     - Codeception\Module\Asserts
     - PhpBrowser
     - StanfordCaravan\Codeception\Drupal\DrupalBootstrap

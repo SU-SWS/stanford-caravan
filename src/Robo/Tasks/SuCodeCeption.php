@@ -156,18 +156,33 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         ->arg('codeception/module-webdriver:^3')
         ->arg('codeception/robo-paracept')
         ->run();
-
       $this->taskExec('vendor/bin/codecept')
         ->dir($this->path)
         ->arg('bootstrap')
         ->run();
     }
+
     file_put_contents("{$this->path}/codeception.yml", $this->getCodeceptionConfig());
     $this->taskRsync()
       ->fromPath("{$this->testDir}/")
       ->toPath("{$this->path}/tests/")
       ->recursive()
       ->run();
+    $this->taskExec('vendor/bin/codecept')
+      ->dir($this->path)
+      ->arg('build')
+      ->run();
+
+    $dirs_to_make = [
+      "{$this->path}/_data",
+      "{$this->path}/_output",
+      "{$this->path}/_support",
+    ];
+    foreach ($dirs_to_make as $dir) {
+      if (!file_exists($dir)) {
+        $this->taskFilesystemStack()->mkdir($dir)->run();
+      }
+    }
 
     $return_result = NULL;
     foreach ($this->suites as $suite) {
