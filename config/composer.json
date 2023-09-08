@@ -8,25 +8,26 @@
     "repositories": [
         {
             "type": "composer",
-            "url": "https://packages.drupal.org/8"
+            "url": "https://packages.drupal.org/8",
+            "exclude": ["drupal/display_field_copy"]
         }
     ],
     "require": {
         "php": ">=7.1",
         "cweagans/composer-patches": "^1.6",
-        "drupal/core": "~9.5.0",
-        "drush/drush": "^11.0",
-        "su-sws/stanford-caravan": "dev-8.x-2.x"
+        "drupal/core": "^10.1",
+        "drush/drush": ">=11.0",
+        "su-sws/stanford-caravan": "10.x"
     },
     "require-dev": {
-        "drupal/core-dev": "^9.0",
-        "phpspec/prophecy-phpunit": "^2.0"
+        "drupal/core-dev": "^10.0",
+        "phpspec/prophecy-phpunit": ">=2.0"
     },
     "replace": {
         "drupal/coder": "*"
     },
     "config": {
-        "php": "7",
+        "php": "8",
         "sort-packages": true,
         "discard-changes": true,
         "allow-plugins": true
