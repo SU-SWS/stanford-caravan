@@ -99,7 +99,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     // Create the project.
     // @link https://www.drupal.org/docs/develop/using-composer/using-composer-to-install-drupal-and-manage-dependencies
     $this->taskComposerCreateProject()
-      ->arg('drupal/recommended-project:~9.5.0')
+      ->arg('drupal/recommended-project')
       ->arg($this->path)
       ->option('no-interaction')
       ->option('no-install')
@@ -226,7 +226,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    *   Composer.json path to be merged.
    */
   protected function addComposer($file_to_merge) {
-    
+
     $composer_path = (is_file("{$this->path}/composer.json")) ? "{$this->path}/composer.json" : '';
     $composer_path = str_replace('//', '/', $composer_path);
     $composer = json_decode(file_get_contents($composer_path), TRUE, 512, JSON_THROW_ON_ERROR);
