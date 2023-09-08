@@ -253,7 +253,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
       foreach ($composer['repositories'] as &$repo) {
         if ($repo['type'] == 'composer') {
-          $repo['exclude'] = [];
+          $repo['exclude'] = ['drupal/display_field_copy'];
         }
       }
     }
