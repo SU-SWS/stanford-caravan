@@ -33,7 +33,7 @@ class DrupalBootstrap extends Module {
    *
    * @var array
    */
-  protected $config = [
+  protected array $config = [
     'server' => [
       'REQUEST_URI' => '/',
       'REMOTE_ADDR' => '127.0.0.1',
@@ -58,7 +58,7 @@ class DrupalBootstrap extends Module {
    * @throws \Codeception\Exception\ModuleConfigException
    * @throws \Codeception\Exception\ModuleException
    */
-  public function __construct(ModuleContainer $container, $config = NULL) {
+  public function __construct(ModuleContainer $container, $config = []) {
 
     foreach ($this->config as $key => $value) {
       $config[$key] += $value;

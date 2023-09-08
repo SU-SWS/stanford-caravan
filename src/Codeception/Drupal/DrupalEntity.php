@@ -3,6 +3,7 @@
 namespace StanfordCaravan\Codeception\Drupal;
 
 use Codeception\Module;
+use Codeception\TestInterface;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Codeception\TestCase;
 
@@ -29,7 +30,7 @@ class DrupalEntity extends Module {
    *
    * @var array
    */
-  protected $config = [
+  protected array $config = [
     'cleanup_test' => TRUE,
     'cleanup_failed' => TRUE,
     'cleanup_suite' => TRUE,
@@ -59,7 +60,7 @@ class DrupalEntity extends Module {
   /**
    * {@inheritdoc}
    */
-  public function _after(TestCase $test) { // @codingStandardsIgnoreLine
+  public function _after(TestInterface $test) { // @codingStandardsIgnoreLine
     if ($this->config['cleanup_test']) {
       $this->doEntityCleanup();
     }
@@ -68,7 +69,7 @@ class DrupalEntity extends Module {
   /**
    * {@inheritdoc}
    */
-  public function _failed(TestCase $test, $fail) { // @codingStandardsIgnoreLine
+  public function _failed(TestInterface $test, $fail) { // @codingStandardsIgnoreLine
     if ($this->config['cleanup_failed']) {
       $this->doEntityCleanup();
     }
