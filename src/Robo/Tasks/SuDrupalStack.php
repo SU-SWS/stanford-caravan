@@ -253,7 +253,8 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
       foreach ($composer['repositories'] as &$repo) {
         if ($repo['type'] == 'composer') {
-          $repo['exclude'] = ['drupal/display_field_copy'];
+          // Add any module that requires a VCS.
+          // $repo['exclude'] = ['drupal/module_to_add'];
         }
       }
     }

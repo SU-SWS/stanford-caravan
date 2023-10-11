@@ -8,8 +8,7 @@
     "repositories": [
         {
             "type": "composer",
-            "url": "https://packages.drupal.org/8",
-            "exclude": ["drupal/display_field_copy"]
+            "url": "https://packages.drupal.org/8"
         }
     ],
     "require": {
