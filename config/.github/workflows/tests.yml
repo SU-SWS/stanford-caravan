@@ -5,7 +5,7 @@ jobs:
     name: PHPUnit Coverage Tests
     runs-on: ubuntu-latest
     container:
-      image: pookmish/drupal8ci:php8
+      image: pookmish/drupal8ci:latest
     services:
       mysql:
         image: mysql:5.7
@@ -42,7 +42,7 @@ jobs:
       DRUPAL_DATABASE_PASSWORD: drupal
       DRUPAL_DATABASE_HOST: mysql
     container:
-      image: pookmish/drupal8ci:php8
+      image: pookmish/drupal8ci:latest
     services:
       mysql:
         image: mysql:5.7
@@ -77,7 +77,7 @@ jobs:
       DRUPAL_DATABASE_PASSWORD: drupal
       DRUPAL_DATABASE_HOST: mysql
     container:
-      image: pookmish/drupal8ci:php8
+      image: pookmish/drupal8ci:latest
       options: '--network-alias drupal8ci'
     services:
       selenium:
