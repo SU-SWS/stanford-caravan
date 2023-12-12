@@ -31,6 +31,9 @@
         "discard-changes": true,
         "allow-plugins": true
     },
+    "conflict": {
+        "seboettg/collection": ">=4.0.0"
+    },
     "extra": {
         "enable-patching": true,
         "composer-exit-on-patch-failure": true,
