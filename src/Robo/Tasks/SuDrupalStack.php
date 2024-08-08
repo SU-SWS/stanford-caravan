@@ -99,7 +99,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     // Create the project.
     // @link https://www.drupal.org/docs/develop/using-composer/using-composer-to-install-drupal-and-manage-dependencies
     $this->taskComposerCreateProject()
-      ->arg('drupal/recommended-project')
+      ->arg('drupal/recommended-project:^10')
       ->arg($this->path)
       ->option('no-interaction')
       ->option('no-install')
@@ -108,7 +108,6 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     chdir($this->path);
     $this->taskComposerConfig()->arg('minimum-stability')->arg('dev')->run();
     $this->taskComposerConfig()->arg('allow-plugins')->arg('true')->run();
-
     $extension_type = $this->getExtensionType($this->extensionDir);
     $extension_name = $this->getExtensionName($this->extensionDir);
 
@@ -233,7 +232,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
 
     $composer_to_add = json_decode(file_get_contents($file_to_merge), TRUE, 512, JSON_THROW_ON_ERROR);
 
-    $merge_keys = ['extra', 'require', 'require-dev', 'config', 'replace'];
+    $merge_keys = ['extra', 'require', 'require-dev', 'config', 'replace', 'conflict'];
     foreach ($merge_keys as $merge_key) {
       if (isset($composer_to_add[$merge_key])) {
         if (isset($composer[$merge_key])) {
