@@ -14,12 +14,12 @@
     "require": {
         "php": ">=8.0",
         "cweagans/composer-patches": "^1.6",
-        "drupal/core": "^10.1",
-        "drush/drush": ">=11.0 <13",
-        "su-sws/stanford-caravan": "10.x"
+        "drupal/core": "^11",
+        "drush/drush": "^13",
+        "su-sws/stanford-caravan": "11.x"
     },
     "require-dev": {
-        "drupal/core-dev": "^10.0",
+        "drupal/core-dev": "^11",
         "phpspec/prophecy-phpunit": ">=2.0"
     },
     "replace": {
