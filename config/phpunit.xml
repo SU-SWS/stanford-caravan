@@ -4,21 +4,7 @@
  or your current system user. See core/tests/README.md and
  https://www.drupal.org/node/2116263 for details.
 -->
-<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="tests/bootstrap.php" colors="true" beStrictAboutTestsThatDoNotTestAnything="true" beStrictAboutOutputDuringTests="true" beStrictAboutChangesToGlobalState="true" failOnWarning="true" printerClass="\Drupal\Tests\Listeners\HtmlOutputPrinter" cacheResult="false" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.3/phpunit.xsd">
-  <coverage includeUncoveredFiles="true">
-    <include>
-      <directory>../modules/custom/*</directory>
-    </include>
-    <exclude>
-      <directory suffix="Test.php">../modules/custom/*</directory>
-      <directory suffix="TestBase.php">../modules/custom/*</directory>
-      <directory suffix=".post_update.php">../modules/custom/*</directory>
-      <directory>../modules/custom/*/tests</directory>
-      <directory>../modules/custom/*/*/tests</directory>
-      <directory>../modules/custom/*/*/*/tests</directory>
-    </exclude>
-  </coverage>
-
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="tests/bootstrap.php" colors="true" beStrictAboutTestsThatDoNotTestAnything="true" beStrictAboutOutputDuringTests="true" beStrictAboutChangesToGlobalState="true" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd" cacheDirectory=".phpunit.cache">
   <php>
     <!-- Set error reporting to E_ALL. -->
     <ini name="error_reporting" value="22527"/>
@@ -61,9 +47,18 @@
       <file>./tests/TestSuites/BuildTestSuite.php</file>
     </testsuite>
   </testsuites>
-  <listeners>
-    <listener class="\Drupal\Tests\Listeners\DrupalListener">
-    </listener>
-  </listeners>
-  <!-- Filter for coverage reports. -->
+  <source>
+    <include>
+      <directory>../modules/custom</directory>
+      <directory>../profiles/lagunita</directory>
+    </include>
+    <exclude>
+      <directory suffix=".post_update.php">../modules/custom/*</directory>
+      <directory suffix=".post_update.php">../profiles/*</directory>
+      <directory>../modules/custom/*/tests</directory>
+      <directory>../modules/custom/*/modules/*/tests</directory>
+      <directory>../profiles/lagunita/*/tests</directory>
+      <directory>../profiles/lagunita/*/modules/*/tests</directory>
+    </exclude>
+  </source>
 </phpunit>
