@@ -5,8 +5,6 @@
  * CircleCi settings.
  */
 
-use Drupal\Component\Assertion\Handle;
-
 $db_name = 'drupal8';
 
 /**
@@ -56,7 +54,6 @@ $settings['file_temp_path'] = '/tmp';
  * @see https://wiki.php.net/rfc/expectations
  */
 assert_options(ASSERT_ACTIVE, TRUE);
-Handle::register();
 
 /**
  * Show all error messages, with backtrace information.
