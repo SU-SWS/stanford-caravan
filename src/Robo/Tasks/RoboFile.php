@@ -280,6 +280,12 @@ class RoboFile extends Tasks {
       ->dir($drupal_root)
       ->siteInstall($profile);
 
+    if (!in_array($profile, ['minimal', 'standard'])) {
+      $tasks[] = $this->taskDrushStack("../vendor/bin/drush")
+        ->dir($drupal_root)
+        ->drush('config-import');
+    }
+
     $tasks[] = $this->taskDrushStack("../vendor/bin/drush")
       ->dir($drupal_root)
       ->drush('cache-rebuild');
