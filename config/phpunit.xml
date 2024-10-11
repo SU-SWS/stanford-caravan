@@ -16,6 +16,9 @@
       <directory>../modules/custom/*/tests</directory>
       <directory>../modules/custom/*/*/tests</directory>
       <directory>../modules/custom/*/*/*/tests</directory>
+      <directory>../modules/custom/*/*/*/*/tests</directory>
+      <directory>../modules/custom/*/*/*/*/*/tests</directory>
+      <directory>../modules/custom/*/*/*/*/*/*/tests</directory>
     </exclude>
   </coverage>
 
