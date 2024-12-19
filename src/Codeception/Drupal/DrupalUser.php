@@ -197,7 +197,7 @@ class DrupalUser extends Module {
     $url = substr($gen_url, strpos($gen_url, '/user/reset'));
 
     $this->driver->amOnPage($url);
-    $this->driver->see('You have just used your one-time login link.');
+    $this->driver->see('one-time login link.');
     $this->driver->see($username, 'h1');
   }
 
