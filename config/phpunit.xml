@@ -13,6 +13,7 @@
       <directory suffix="Test.php">../modules/custom/*</directory>
       <directory suffix="TestBase.php">../modules/custom/*</directory>
       <directory suffix=".post_update.php">../modules/custom/*</directory>
+      <directory suffix=".deploy.php">../modules/custom/*</directory>
       <directory>../modules/custom/*/tests</directory>
       <directory>../modules/custom/*/*/tests</directory>
       <directory>../modules/custom/*/*/*/tests</directory>
