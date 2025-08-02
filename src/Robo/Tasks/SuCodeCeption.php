@@ -154,7 +154,6 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
         ->arg('codeception/module-asserts:^3')
         ->arg('codeception/module-phpbrowser:^3')
         ->arg('codeception/module-webdriver:^3')
-        ->arg('codeception/robo-paracept')
         ->run();
       $this->taskExec('vendor/bin/codecept')
         ->dir($this->path)
