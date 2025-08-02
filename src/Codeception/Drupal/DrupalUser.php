@@ -132,8 +132,8 @@ class DrupalUser extends Module {
       /** @var \Drupal\user\Entity\User $user */
       try {
         $user = \Drupal::entityTypeManager()->getStorage('user')->create([
-          'name' => $faker->userName,
-          'mail' => $faker->email,
+          'name' => $faker->userName(),
+          'mail' => $faker->email(),
           'roles' => $this->getRoleMachineNames($roles),
           'pass' => $password ? $password : $faker->password(12, 14),
           'status' => 1,
