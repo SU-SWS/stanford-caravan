@@ -15,7 +15,7 @@
   failOnWarning="true"
   displayDetailsOnTestsThatTriggerErrors="true"
   displayDetailsOnTestsThatTriggerWarnings="true"
-  displayDetailsOnTestsThatTriggerDeprecations="true"
+  displayDetailsOnTestsThatTriggerDeprecations="false"
   cacheResult="false"
   xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
   cacheDirectory=".phpunit.cache"
