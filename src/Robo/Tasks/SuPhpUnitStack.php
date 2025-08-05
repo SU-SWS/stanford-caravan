@@ -181,10 +181,7 @@ class SuPhpUnitStack extends BaseTask implements BuilderAwareInterface {
         ->option('coverage-clover', "{$this->reportDir}/phpunit/coverage/clover.xml");
     }
 
-    return $this->collectionBuilder()
-      ->addTask($test)
-      ->completionCode([$this, 'uploadCoverageCodeClimate'])
-      ->run();
+    return $this->collectionBuilder()->addTask($test)->run();
   }
 
   /**
@@ -201,44 +198,6 @@ class SuPhpUnitStack extends BaseTask implements BuilderAwareInterface {
     }
 
     file_put_contents("{$this->dir}/core/phpunit.xml", $dom->saveXML());
-  }
-
-  /**
-   * Use CodeClimate CLI to upload the phpunit coverage report.
-   *
-   * @link https://docs.codeclimate.com/docs/circle-ci-test-coverage-example
-   */
-  public function uploadCoverageCodeClimate() {
-    $covarge_file = "{$this->reportDir}/phpunit/coverage/clover.xml";
-
-    if (!file_exists($covarge_file)) {
-      $this->printTaskInfo('No coverage to upload to code climate.');
-      return;
-    }
-    $test_reporter_id = getenv('CC_TEST_REPORTER_ID');
-    if (!$test_reporter_id) {
-      $this->printTaskInfo('To enable codeclimate coverage uploads, please set the "CC_TEST_REPORTER_ID" environment variable to enable this feature.');
-      $this->printTaskInfo('This can be found on the codeclimate repository settings page.');
-      return;
-    }
-
-    // Download the executable.
-    $tasks[] = $this->taskExec("curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter")
-      ->dir($this->testDir);
-    $tasks[] = $this->taskExec(' chmod +x ./cc-test-reporter')
-      ->dir($this->testDir);
-
-    // Move the phpunit report into the tested directory.
-    $tasks[] = $this->taskFilesystemStack()
-      ->copy($covarge_file, "$this->testDir/clover.xml");
-
-    // Use the CLI to upload the report.
-    $tasks[] = $this->taskExec("./cc-test-reporter after-build -t clover")
-      ->dir($this->testDir);
-
-    return $this->collectionBuilder()
-      ->addTaskList($tasks)
-      ->run();
   }
 
 }
