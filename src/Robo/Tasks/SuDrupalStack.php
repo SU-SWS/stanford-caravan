@@ -99,8 +99,8 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     // Create the project.
     // @link https://www.drupal.org/docs/develop/using-composer/using-composer-to-install-drupal-and-manage-dependencies
     $this->taskComposerCreateProject()
-      ->arg('drupal/recommended-project:^11')
-      ->arg($this->path)
+      ->source('drupal/recommended-project:^11')
+      ->target($this->path)
       ->option('no-interaction')
       ->option('no-install')
       ->run();
