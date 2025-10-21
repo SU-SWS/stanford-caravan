@@ -310,6 +310,7 @@ class RoboFile extends Tasks {
    * @options test-dir Path within the extension-dir where codeception tests
    *   are.
    * @options domain Change the domain for the tests if needed.
+   * @options shard Execute subset of tests to run tests on different machine. To split tests on 3 machines to run with shards: 1/3, 2/3, 3/3.
    *
    * @link https://codeception.com/quickstart
    */
@@ -320,6 +321,7 @@ class RoboFile extends Tasks {
     'suites' => 'acceptance,functional',
     'test-dir' => 'tests/codeception',
     'domain' => 'localhost',
+    'shard' => NULL,
   ]
   ) {
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
@@ -356,6 +358,7 @@ class RoboFile extends Tasks {
       ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name/{$options['test-dir']}")
       ->suites($options['suites'])
       ->domain($options['domain'])
+      ->shard($options['shard'])
       ->run();
   }
 

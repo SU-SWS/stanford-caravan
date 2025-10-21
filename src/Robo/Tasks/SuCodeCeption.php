@@ -18,8 +18,6 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
   use CaravanTrait;
   use LoadAllTasks;
 
-  const NUMBER_OF_GROUPS = 6;
-
   /**
    * Root path of the composer installation.
    *
@@ -62,6 +60,8 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    */
   protected $parallel = FALSE;
 
+  protected $shard = NULL;
+
   /**
    * SuCodeCeption constructor.
    *
@@ -101,6 +101,10 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    */
   public function domain($domain) {
     $this->domain = $domain;
+  }
+
+  public function shard($shard = NULL) {
+    $this->shard = $shard;
   }
 
   public function parallel($parallel = FALSE) {
@@ -143,7 +147,6 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
    *   Result of the test.
    */
   public function run() {
-
     if (!file_exists($this->testDir)) {
       return;
     }
@@ -213,6 +216,10 @@ class SuCodeCeption extends BaseTask implements BuilderAwareInterface {
       ->xml('results.xml')
       ->option('steps')
       ->option('override', "paths: output: {$this->path}/artifacts/$suite", '=');
+
+    if ($this->shard) {
+      $test->option('shard', $this->shard, '=');
+    }
 
     $environment = [];
     if (getenv('CI')) {
