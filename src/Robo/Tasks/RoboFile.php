@@ -167,7 +167,7 @@ class RoboFile extends Tasks {
 
     $tasks[] = $this->taskDrupalStack($html_path)
       ->testExtension($extension_dir);
-
+    $tasks[] = $this->taskFilesystemStack()->mkdir('web/sites/simpletest');
     $tasks[] = $this->taskSuPhpUnitStack()
       ->dir("$html_path/web")
       ->testDir("$html_path/web/{$extension_type}s/custom/$extension_name")
