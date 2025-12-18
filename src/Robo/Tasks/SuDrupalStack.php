@@ -105,6 +105,17 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
       ->option('no-install')
       ->run();
 
+    $this->taskComposerRequire()
+      ->arg('drupal/core-composer-scaffold:>=11.2')
+      ->arg('drupal/core-recommended:>=11.2')
+      ->option('no-update')
+      ->run();
+    $this->taskComposerRemove()
+      ->arg('drupal/core-recipe-unpack')
+      ->arg('drupal/core-project-message')
+      ->option('no-update')
+      ->run();
+
     chdir($this->path);
     $this->taskComposerConfig()->arg('minimum-stability')->arg('dev')->run();
     $this->taskComposerConfig()->arg('allow-plugins')->arg('true')->run();
