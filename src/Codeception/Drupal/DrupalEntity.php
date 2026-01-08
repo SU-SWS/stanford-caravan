@@ -141,14 +141,14 @@ class DrupalEntity extends Module {
     foreach ($this->entities as $type => $ids) {
       if ($entity_type_manager->hasDefinition($type)) {
         $storage = $entity_type_manager->getStorage($type);
-        $storage->resetCache($ids);
+        $storage->resetCache();
         $entities = $storage->loadMultiple($ids);
         foreach ($entities as $entity) {
           $entity->delete();
         }
       }
     }
-    
+
     \Drupal::service('cache.render')->invalidateAll();
     \Drupal::service('cache.bootstrap')
       ->invalidate('paragraphs_type_icon_uuid');
