@@ -137,6 +137,7 @@ class RoboFile extends Tasks {
    * @param array $options
    *   Command options.
    *
+   * @options core-version Drupal core version: ex 11 or 11.4.
    * @options extension-dir Path to the Drupal extension.
    * @options with-coverage Flag to run PHPUnit with code coverage.
    * @options coverage-required Set the percent of the coverage that is needed.
@@ -144,6 +145,7 @@ class RoboFile extends Tasks {
    * @command phpunit
    */
   public function phpunit($html_path, array $options = [
+    'core-version' => NULL,
     'extension-dir' => NULL,
     'with-coverage' => FALSE,
     'coverage-required' => 90,
@@ -166,7 +168,8 @@ class RoboFile extends Tasks {
     $extension_name = $this->getExtensionName($extension_dir);
 
     $tasks[] = $this->taskDrupalStack($html_path)
-      ->testExtension($extension_dir);
+      ->testExtension($extension_dir)
+      ->coreVersion($options['core-version']);
     $tasks[] = $this->taskFilesystemStack()->mkdir('web/sites/simpletest');
     $tasks[] = $this->taskSuPhpUnitStack()
       ->dir("$html_path/web")
@@ -310,7 +313,9 @@ class RoboFile extends Tasks {
    * @options test-dir Path within the extension-dir where codeception tests
    *   are.
    * @options domain Change the domain for the tests if needed.
-   * @options shard Execute subset of tests to run tests on different machine. To split tests on 3 machines to run with shards: 1/3, 2/3, 3/3.
+   * @options shard Execute subset of tests to run tests on different machine.
+   *   To split tests on 3 machines to run with shards: 1/3, 2/3, 3/3.
+   * @options core-version Drupal core version: ex 11 or 11.4.
    *
    * @link https://codeception.com/quickstart
    */
@@ -322,11 +327,13 @@ class RoboFile extends Tasks {
     'test-dir' => 'tests/codeception',
     'domain' => 'localhost',
     'shard' => NULL,
+    'core-version' => NULL,
   ]
   ) {
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
     $tasks[] = $this->taskDrupalStack($html_path)
-      ->testExtension($extension_dir);
+      ->testExtension($extension_dir)
+      ->coreVersion($options['core-version']);
 
     $extension_type = $this->getExtensionType($extension_dir);
     $extension_name = $this->getExtensionName($extension_dir);

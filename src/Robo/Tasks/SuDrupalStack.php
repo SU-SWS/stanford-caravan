@@ -41,6 +41,13 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
   protected $keepMedia = FALSE;
 
   /**
+   * Which version of drupal core to install.
+   *
+   * @var string
+   */
+  protected $coreVersion = '^11';
+
+  /**
    * SuDrupalStack constructor.
    *
    * @param string $dir
@@ -76,6 +83,11 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     return $this;
   }
 
+  public function coreVersion(?string $version) {
+    $this->coreVersion = $version ?? $this->coreVersion;
+    return $this;
+  }
+
   /**
    * Execute the tasks.
    *
@@ -99,7 +111,7 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     // Create the project.
     // @link https://www.drupal.org/docs/develop/using-composer/using-composer-to-install-drupal-and-manage-dependencies
     $this->taskComposerCreateProject()
-      ->source('drupal/recommended-project:^11')
+      ->source('drupal/recommended-project:' . $this->coreVersion)
       ->target($this->path)
       ->option('no-interaction')
       ->option('no-install')
@@ -147,6 +159,12 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
     }
     $this->addComposer("{$this->toolDir()}/config/composer.json");
     $this->addComposer("{$this->path}/web/{$extension_type}s/custom/$extension_name/composer.json");
+
+    $requireCore = preg_match('/^[~|^]\d/', $this->coreVersion) ? $this->coreVersion : "~$this->coreVersion.0";
+    $this->taskComposerRequire()
+      ->arg("drupal/core:$requireCore")
+      ->option('no-update')
+      ->run();
 
     $this->taskComposerUpdate()->dir($this->path)->run();
 
@@ -235,14 +253,20 @@ class SuDrupalStack extends BaseTask implements BuilderAwareInterface {
    *   Composer.json path to be merged.
    */
   protected function addComposer($file_to_merge) {
-
     $composer_path = (is_file("{$this->path}/composer.json")) ? "{$this->path}/composer.json" : '';
     $composer_path = str_replace('//', '/', $composer_path);
     $composer = json_decode(file_get_contents($composer_path), TRUE, 512, JSON_THROW_ON_ERROR);
 
     $composer_to_add = json_decode(file_get_contents($file_to_merge), TRUE, 512, JSON_THROW_ON_ERROR);
 
-    $merge_keys = ['extra', 'require', 'require-dev', 'config', 'replace', 'conflict'];
+    $merge_keys = [
+      'extra',
+      'require',
+      'require-dev',
+      'config',
+      'replace',
+      'conflict',
+    ];
     foreach ($merge_keys as $merge_key) {
       if (isset($composer_to_add[$merge_key])) {
         if (isset($composer[$merge_key])) {
