@@ -233,7 +233,8 @@ class DrupalUser extends Module {
         $user->delete();
       }
       \Drupal::service('cache.render')->invalidateAll();
-      \Drupal::service('cache.bootstrap')->invalidate('paragraphs_type_icon_uuid');
+      \Drupal::service('cache.bootstrap')
+        ->invalidate('paragraphs_type_icon_uuid');
     }
   }
 
@@ -256,16 +257,16 @@ class DrupalUser extends Module {
         continue;
       }
 
-      try {
-        $storage = $entity_manager->getStorage($cleanup_entity);
+      $storage = $entity_manager->getStorage($cleanup_entity);
 
-        foreach ($storage->loadByProperties(['uid' => $uid]) as $entity) {
+      foreach ($storage->loadByProperties(['uid' => $uid]) as $entity) {
+        try {
           $entity->delete();
         }
-      }
-      catch (\Exception $e) {
-        $errors[] = 'Unable to delete all entities. error: ' . $e->getMessage();
-        continue;
+        catch (\Exception $e) {
+          $label = $entity->label();
+          echo "Failed to delete entity: $cleanup_entity: $label".PHP_EOL;
+        }
       }
     }
 

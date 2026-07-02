@@ -144,7 +144,13 @@ class DrupalEntity extends Module {
         $storage->resetCache();
         $entities = $storage->loadMultiple($ids);
         foreach ($entities as $entity) {
-          $entity->delete();
+          try {
+            $entity->delete();
+          }
+          catch (\Exception $e) {
+            $label = $entity->label();
+            echo "Failed to delete entity: $cleanup_entity: $label" . PHP_EOL;
+          }
         }
       }
     }
