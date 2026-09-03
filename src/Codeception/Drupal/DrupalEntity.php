@@ -149,7 +149,7 @@ class DrupalEntity extends Module {
           }
           catch (\Exception $e) {
             $label = $entity->label();
-            echo "Failed to delete entity: $cleanup_entity: $label" . PHP_EOL;
+            echo "Failed to delete entity: $type: $label." . PHP_EOL . $e->getMessage() . PHP_EOL;
           }
         }
       }
