@@ -29,7 +29,8 @@
         "php": "8",
         "sort-packages": true,
         "discard-changes": true,
-        "allow-plugins": true
+        "allow-plugins": true,
+        "policy": false
     },
     "conflict": {
         "seboettg/collection": ">=4.0.0"
