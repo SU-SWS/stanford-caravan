@@ -5,7 +5,7 @@
 #
 #   jobs:
 #     tests:
-#       uses: SU-SWS/stanford-caravan/.github/workflows/drupal-tests.yml@11.x
+#       uses: SU-SWS/stanford-caravan/.github/workflows/drupal-tests.yml@12.x
 #       with:
 #         codeception-shards: 4
 #       secrets: inherit
@@ -77,7 +77,7 @@ on:
       caravan-ref:
         description: Ref of SU-SWS/stanford-caravan for the ci/ scripts, configs and Codeception modules. Keep it the same as the ref on the uses line.
         type: string
-        default: 11.x
+        default: 12.x
       mysql-image:
         type: string
         default: mysql:8.0

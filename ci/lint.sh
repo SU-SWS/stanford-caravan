@@ -2,8 +2,6 @@
 # Check an extension's PHP syntax and field storage name lengths.
 #
 # Usage: lint.sh <extension dir>
-#
-# Replaces the checks `sws-caravan phpunit` ran before testing.
 set -euo pipefail
 
 EXT_DIR="$1"

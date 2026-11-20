@@ -9,8 +9,6 @@
 #   SIMPLETEST_DB       Test database URL. Default: built from the DRUPAL_DATABASE_*
 #                       variables install.sh uses (NAME, USERNAME, PASSWORD, HOST,
 #                       PORT), each defaulting to drupal, drupal, drupal, 127.0.0.1, 3306.
-#
-# Replaces the test half of `sws-caravan phpunit`.
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 

@@ -7,8 +7,6 @@
 #   PROFILE   Install profile when the extension is a module or theme. Default standard.
 #   MODULES   Comma-separated extra modules to enable.
 #   DRUPAL_DATABASE_{NAME,USERNAME,PASSWORD,HOST,PORT}  Read by the settings file.
-#
-# Replaces the install half of `sws-caravan codeception`.
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 

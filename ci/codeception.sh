@@ -9,7 +9,7 @@
 #   SHARD      Run part of each suite, e.g. 2/4.
 #   DOMAIN     Host name the site is served on. Default localhost.
 #
-# Failed tests run once more. Replaces the test half of `sws-caravan codeception`.
+# Failed tests run once more.
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 

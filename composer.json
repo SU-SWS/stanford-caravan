@@ -1,6 +1,6 @@
 {
     "name": "su-sws/stanford-caravan",
-    "description": "Tools for testing Drupal 8 on CI/CD",
+    "description": "Codeception modules and CI scripts for testing Drupal extensions",
     "type": "library",
     "authors": [
         {
@@ -9,13 +9,9 @@
         }
     ],
     "require": {
-        "consolidation/robo": ">=1.0",
         "fakerphp/faker": "^1.19",
         "league/html-to-markdown": "^5.1"
     },
-    "bin": [
-        "sws-caravan"
-    ],
     "autoload": {
         "psr-4": {
             "StanfordCaravan\\": "src"

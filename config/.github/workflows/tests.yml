@@ -14,7 +14,7 @@ permissions:
 jobs:
   tests:
     name: Tests
-    uses: SU-SWS/stanford-caravan/.github/workflows/drupal-tests.yml@11.x
+    uses: SU-SWS/stanford-caravan/.github/workflows/drupal-tests.yml@12.x
     with:
       # '[]' turns Codeception off, for extensions without Codeception tests.
       codeception-suites: '["acceptance", "functional"]'

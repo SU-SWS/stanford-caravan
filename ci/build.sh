@@ -6,8 +6,6 @@
 # Environment:
 #   CORE_VERSION       Drupal core version (e.g. 11, 11.3, ^11). Default ^11.
 #   WITH_CODECEPTION   1 to add the Codeception packages.
-#
-# Replaces the build half of `sws-caravan phpunit` and `sws-caravan codeception`.
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 

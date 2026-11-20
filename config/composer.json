@@ -16,7 +16,7 @@
         "cweagans/composer-patches": "^1.6",
         "drupal/core": "^11",
         "drush/drush": "^13",
-        "su-sws/stanford-caravan": "11.x"
+        "su-sws/stanford-caravan": "12.x"
     },
     "require-dev": {
         "drupal/core-dev": "^11",

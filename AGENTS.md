@@ -13,25 +13,18 @@ Test tooling for Stanford's Drupal modules, themes and profiles. It has four par
 | `src/Codeception/Drupal/` | Codeception modules that extensions' tests use: `DrupalBootstrap`, `DrupalDrush`, `DrupalEntity`, `DrupalUser`. |
 | `config/` | Files copied into the test project: `composer.json` (merged in), `circleci.settings.php` (becomes `settings.php`), `phpunit.xml`, `codeception/*.yml`, `patches/`, and `config/.github/workflows/tests.yml` (the caller template). |
 
-`sws-caravan`, `src/Robo/` and `src/CaravanTrait.php` are the older Robo commands
-(`sws-caravan phpunit`, `codeception`, `back-to-dev`). They are **deprecated in
-11.x and will be removed in 12.x**. The `ci/` scripts replace `phpunit` and
-`codeception`; `back-to-dev` has no replacement. Each command prints a deprecation
-warning from `RoboFile::warnDeprecated()` when it runs.
-
-On 11.x, **don't remove or change the Robo commands' behavior**. Many repositories
-still install `11.x-dev` (or an older branch) and run them in CI and release
-jobs. Remove them only on 12.x. Nothing in `ci/` or `src/Codeception/` may depend
-on them, so the removal stays a deletion.
-
-`README.md` is partly out of date: it mentions `config/.circleci` and `CHANGELOG.txt`,
-which don't exist. Its "GitHub Actions" section is current.
+12.x has no command-line tool. The `sws-caravan` Robo commands (`phpunit`,
+`codeception`, `back-to-dev`) were deprecated in 11.x and removed here; `ci/` and
+the workflow replace them. Don't add Robo back as a dependency. Fixes for
+repositories still on the Robo commands go on the 11.x branch.
 
 ## Branches and versions
 
-- Main branch is `11.x` (Drupal 11). There are no tags yet; callers use
-  `@11.x` and Composer installs `11.x-dev`.
-- **A push to `11.x` changes CI for every caller at once.** Nothing pins a caller to a
+- This is the `12.x` branch. There are no tags yet; callers use `@12.x`.
+- `11.x` still has the deprecated Robo commands for repositories that haven't moved.
+  Both branches have the workflow and `ci/`, so a fix there may be needed on both
+  until every caller is on `12.x`.
+- **A push to `12.x` changes CI for every caller at once.** Nothing pins a caller to a
   commit. Test workflow and `ci/` changes on another branch first (below).
 - Don't commit or push unless asked. Never add AI/Claude attribution to commits or
   pull requests.
@@ -105,10 +98,10 @@ SUITES=acceptance DOMAIN=localhost:8089 ci/codeception.sh ../my_module /tmp/site
 
 ## Testing a workflow change on GitHub
 
-1. Push this repository's change to a branch other than `11.x`.
+1. Push this repository's change to a branch other than `12.x`.
 2. In a test branch of a calling repository, point both `uses: ...@<branch>` and
    `caravan-ref: <branch>` at it, then push.
-3. Merge to `11.x` once the run passes, and point the caller back at `11.x`.
+3. Merge to `12.x` once the run passes, and point the caller back at `12.x`.
 
 ## Codeception modules
 

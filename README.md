@@ -1,21 +1,11 @@
 # [Stanford Caravan](https://github.com/SU-SWS/stanford-caravan)
-##### Version: 8.x-1.x
+##### Version: 12.x
 
 Maintainers: [Mike Decker](https://github.com/pookmish)
-
-Changelog: [Changelog.txt](CHANGELOG.txt)
 
 Description
 ---
 Tools for running tests against Drupal modules, profiles, and themes.
-
-Installation
----
-To set up CircleCI, copy the directory [config/.circleci](config/.circleci) into
-the root of the desired directory. Commit that directory to a branch on github.
-Then in [CircleCi](https://circleci.com/add-projects) add the desired repository 
-as a project to be tested. Creating a pull request and an additional commit may
-be necessary to trigger the build to run.
 
 GitHub Actions
 ---
@@ -45,7 +35,7 @@ checkout.
 | `modules` | (none) | Comma-separated extra modules to enable before Codeception runs. |
 | `test-dir` | `tests/codeception` | Codeception tests, relative to the extension. |
 | `core-version` | `^11` | Drupal core version, e.g. `11`, `11.3` or `^11`. |
-| `caravan-ref` | `11.x` | Ref of this repository for the `ci/` scripts, configs and Codeception modules. Keep it the same as the ref on the `uses:` line. |
+| `caravan-ref` | `12.x` | Ref of this repository for the `ci/` scripts, configs and Codeception modules. Keep it the same as the ref on the `uses:` line. |
 | `mysql-image` | `mysql:8.0` | MySQL service image. |
 | `selenium-image` | `selenium/standalone-chrome:130.0` | Selenium image. Only the functional suite starts it. |
 
@@ -61,18 +51,20 @@ The workflow's steps, usable on their own (for example to reproduce a CI run
 locally). Each takes `<extension dir> <site dir>` and reads the settings named
 at the top of the script from the environment.
 
-| Script | Replaces |
+| Script | What it does |
 |---|---|
-| `ci/lint.sh` | The PHP syntax and field name checks in `sws-caravan phpunit` (takes only `<extension dir>`) |
-| `ci/build.sh` | Building the Drupal project, in both commands |
-| `ci/phpunit.sh` | Running PHPUnit and checking coverage, in `sws-caravan phpunit` |
-| `ci/install.sh` | Installing Drupal and enabling modules, in `sws-caravan codeception` |
-| `ci/codeception.sh` | Running the suites and retrying failures, in `sws-caravan codeception` |
+| `ci/lint.sh` | Checks PHP syntax and field storage name lengths (takes only `<extension dir>`). |
+| `ci/build.sh` | Builds a Drupal project with the extension in it. |
+| `ci/phpunit.sh` | Runs PHPUnit and checks coverage. |
+| `ci/install.sh` | Installs Drupal and enables the extension and any extra modules. |
+| `ci/codeception.sh` | Runs the Codeception suites and retries failed tests once. |
 
-The `sws-caravan` Robo commands (`phpunit`, `codeception`, `back-to-dev`) are
-**deprecated** in 11.x and will be removed in 12.x. They still work, and print a
-deprecation warning (a warning annotation in GitHub Actions) each time they run.
-Move to the workflow above; `back-to-dev` has no replacement here.
+Upgrading from 11.x
+---
+12.x removes the `sws-caravan` Robo commands (`phpunit`, `codeception`,
+`back-to-dev`), deprecated in 11.x. Replace `sws-caravan phpunit` and
+`sws-caravan codeception` jobs with the workflow above. `back-to-dev` has no
+replacement here; move those release steps into the repository.
 
 
 Troubleshooting
