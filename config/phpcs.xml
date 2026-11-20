@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!--
+  Default coding standard for ci/phpcs.sh. An extension with its own phpcs.xml,
+  phpcs.xml.dist, .phpcs.xml or .phpcs.xml.dist uses that instead.
+-->
+<ruleset name="stanford-caravan">
+  <description>Drupal coding standards for Stanford extensions.</description>
+
+  <arg name="extensions" value="php,module,inc,install,test,profile,theme,info,yml"/>
+
+  <exclude-pattern>*/node_modules/*</exclude-pattern>
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+  <exclude-pattern>*/dist/*</exclude-pattern>
+  <!-- CI configuration, not Drupal code. -->
+  <exclude-pattern>*/.github/*</exclude-pattern>
+
+  <rule ref="Drupal"/>
+  <rule ref="DrupalPractice"/>
+
+  <!-- Codeception tests name their actor $I. -->
+  <rule ref="Drupal.NamingConventions.ValidVariableName.LowerStart">
+    <exclude-pattern>*/tests/codeception/*</exclude-pattern>
+  </rule>
+</ruleset>

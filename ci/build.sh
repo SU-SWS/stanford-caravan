@@ -6,6 +6,8 @@
 # Environment:
 #   CORE_VERSION       Drupal core version (e.g. 11, 11.3, ^11). Default ^11.
 #   WITH_CODECEPTION   1 to add the Codeception packages.
+#   WITH_PHPSTAN       1 to add PHPStan's deprecation rules. drupal/core-dev
+#                      already brings PHPStan and phpstan-drupal.
 set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 
@@ -44,6 +46,9 @@ if [ "${WITH_CODECEPTION:-0}" = "1" ]; then
     'codeception/module-asserts:^3' \
     'codeception/module-phpbrowser:^3' \
     'codeception/module-webdriver:^4'
+fi
+if [ "${WITH_PHPSTAN:-0}" = "1" ]; then
+  composer require --dev --no-update 'phpstan/phpstan-deprecation-rules:^2'
 fi
 composer update --no-interaction --no-progress
 

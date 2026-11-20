@@ -11,7 +11,7 @@ Test tooling for Stanford's Drupal modules, themes and profiles. It has four par
 | `.github/workflows/drupal-tests.yml` | Reusable GitHub Actions workflow (`on: workflow_call`) that runs PHPUnit and Codeception for the extension in the calling repository. |
 | `ci/` | The shell and PHP scripts that workflow runs, one per step. |
 | `src/Codeception/Drupal/` | Codeception modules that extensions' tests use: `DrupalBootstrap`, `DrupalDrush`, `DrupalEntity`, `DrupalUser`. |
-| `config/` | Files copied into the test project: `composer.json` (merged in), `circleci.settings.php` (becomes `settings.php`), `phpunit.xml`, `codeception/*.yml`, `patches/`, and `config/.github/workflows/tests.yml` (the caller template). |
+| `config/` | Files copied into the test project: `composer.json` (merged in), `circleci.settings.php` (becomes `settings.php`), `phpunit.xml`, `codeception/*.yml`, `patches/`. Also `phpcs.xml` (the default coding standard) and `config/.github/workflows/tests.yml` (the caller template). |
 
 12.x has no command-line tool. The `sws-caravan` Robo commands (`phpunit`,
 `codeception`, `back-to-dev`) were deprecated in 11.x and removed here; `ci/` and
@@ -40,8 +40,9 @@ repositories still on the Robo commands go on the 11.x branch.
   a Composer `path` repository and requires it at `*`. The site's Codeception
   modules and the configs therefore always come from the same checkout as the
   scripts, whatever version the extension's `composer.json` asks for.
-- Jobs: `matrix` → `phpunit` (per PHP version) and `codeception` (suite × PHP ×
-  shard) → `result` ("Test Results"). `result` fails unless every job succeeded,
+- Jobs: `matrix` → `phpunit` (per PHP version), `code-quality` (phpcs and
+  PHPStan, on `primary-php`) and `codeception` (suite × PHP × shard) → `result`
+  ("Test Results"). `result` fails unless every job succeeded,
   or was turned off by an input. Callers add their own **All Tests Pass** job on
   top of it, and that is the required status check, so don't rename either job
   casually.
@@ -75,6 +76,24 @@ repositories still on the Robo commands go on the 11.x branch.
   ```
 
   actionlint 1.7.7 rejects YAML anchors, so the workflow doesn't use them.
+
+## Code quality
+
+- `phpcs` and `phpstan` take `fail`, `warn` or `off`, and default to `warn`.
+  Existing extensions have hundreds of phpcs findings, so a `fail` default would
+  break every caller at once. Keep `warn` the default; each repository opts into
+  `fail`.
+- `config/composer.json` replaces `drupal/coder` in the test project, so
+  `ci/phpcs.sh` installs coder in its own Composer project (`CODER_DIR`). Don't
+  move coder into the test project.
+- `drupal/core-dev` brings PHPStan and phpstan-drupal. `build.sh` adds only
+  `phpstan/phpstan-deprecation-rules`, with `WITH_PHPSTAN=1`.
+- Both tools write checkstyle XML. `ci/report.php` makes annotations and the job
+  summary from it, and is the only thing that decides pass or fail, so keep the
+  tools' own exit codes ignored (`|| true`).
+- Annotation paths must be relative to the calling repository's root. phpcs reports
+  absolute paths (prefix `$EXT_DIR`); PHPStan reports paths relative to the site
+  directory (prefix `web/<type>s/custom/<name>`).
 
 ## Running the scripts locally
 

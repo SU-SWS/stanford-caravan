@@ -19,6 +19,10 @@ jobs:
       # '[]' turns Codeception off, for extensions without Codeception tests.
       codeception-suites: '["acceptance", "functional"]'
       codeception-shards: 1
+      # Code quality: fail, warn (report without failing) or off. Switch to
+      # fail once the extension is clean.
+      phpcs: warn
+      phpstan: warn
     secrets: inherit
 
   # Make this the required status check. Its name stays the same whatever the

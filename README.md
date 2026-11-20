@@ -36,6 +36,9 @@ checkout.
 | `test-dir` | `tests/codeception` | Codeception tests, relative to the extension. |
 | `core-version` | `^11` | Drupal core version, e.g. `11`, `11.3` or `^11`. |
 | `caravan-ref` | `12.x` | Ref of this repository for the `ci/` scripts, configs and Codeception modules. Keep it the same as the ref on the `uses:` line. |
+| `phpcs` | `warn` | Drupal coding standards check: `fail`, `warn` (annotations and a summary, but the run passes) or `off`. |
+| `phpstan` | `warn` | PHPStan with phpstan-drupal and the deprecation rules: `fail`, `warn` or `off`. |
+| `phpstan-level` | `1` | PHPStan rule level, used when the extension has no `phpstan.neon`. |
 | `mysql-image` | `mysql:8.0` | MySQL service image. |
 | `selenium-image` | `selenium/standalone-chrome:130.0` | Selenium image. Only the functional suite starts it. |
 
@@ -43,7 +46,30 @@ The optional secret `STANFORD_ENCRYPT` is passed to Codeception; `secrets: inher
 in the caller provides it.
 
 Test results are uploaded as `phpunit-php<version>` (on failure) and
-`codeception-<suite>-php<version>-<shard>` artifacts.
+`codeception-<suite>-php<version>-<shard>` artifacts, and the code quality
+reports (checkstyle XML) as `code-quality`.
+
+### Code quality
+
+The **Code Quality** job runs on `primary-php`:
+
+- **PHPCS** with `drupal/coder` (the `Drupal` and `DrupalPractice` standards),
+  installed apart from the extension so their dependencies can't clash. The
+  default ruleset is [config/phpcs.xml](config/phpcs.xml). It checks PHP, info
+  and YAML files, skips `node_modules`, `vendor`, `dist` and `.github`, and
+  allows Codeception's `$I`. An extension with its own `phpcs.xml`,
+  `phpcs.xml.dist`, `.phpcs.xml` or `.phpcs.xml.dist` uses that instead.
+- **PHPStan** with `phpstan-drupal` and `phpstan-deprecation-rules`, in a built
+  project. It analyses the whole extension except `tests/codeception` at
+  `phpstan-level`. An extension with its own `phpstan.neon` or
+  `phpstan.neon.dist` uses that instead.
+
+Findings appear as annotations on the run and in the job summary, which lists up
+to 200. GitHub shows only the first 10 annotations of each type per step, so check
+the summary, or download the `code-quality` artifact, for the rest. In `fail` mode,
+errors fail the job; warnings never do.
+
+To fix most phpcs findings automatically, run `phpcbf` with the same standard.
 
 ### ci/ scripts
 
@@ -58,6 +84,9 @@ at the top of the script from the environment.
 | `ci/phpunit.sh` | Runs PHPUnit and checks coverage. |
 | `ci/install.sh` | Installs Drupal and enables the extension and any extra modules. |
 | `ci/codeception.sh` | Runs the Codeception suites and retries failed tests once. |
+| `ci/phpcs.sh` | Checks coding standards (takes `<extension dir> [<report dir>]`). |
+| `ci/phpstan.sh` | Runs PHPStan in a project built with `WITH_PHPSTAN=1` (takes `<extension dir> <site dir> [<report dir>]`). |
+| `ci/report.php` | Turns a checkstyle report into annotations and a summary, and decides pass or fail. |
 
 Upgrading from 11.x
 ---

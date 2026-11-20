@@ -13,6 +13,9 @@
 # See config/.github/workflows/tests.yml for a full caller, and the README for
 # every input.
 #
+# Code Quality runs phpcs (drupal/coder) and PHPStan. In warn mode, their
+# findings are annotations and a job summary but don't fail the run.
+#
 # How it runs: setup-php installs PHP on the runner, MySQL and Selenium run as
 # service containers, and PHP's built-in server serves the site. Each step
 # calls a script in ci/, from a checkout of this repository at caravan-ref, and
@@ -74,6 +77,18 @@ on:
         description: Drupal core version (e.g. 11, 11.3 or ^11). Empty means ^11.
         type: string
         default: ''
+      phpcs:
+        description: Drupal coding standards check. fail, warn (report without failing) or off.
+        type: string
+        default: warn
+      phpstan:
+        description: PHPStan analysis with phpstan-drupal and the deprecation rules. fail, warn or off.
+        type: string
+        default: warn
+      phpstan-level:
+        description: PHPStan rule level when the extension has no phpstan.neon.
+        type: number
+        default: 1
       caravan-ref:
         description: Ref of SU-SWS/stanford-caravan for the ci/ scripts, configs and Codeception modules. Keep it the same as the ref on the uses line.
         type: string
@@ -196,6 +211,68 @@ jobs:
           path: site/artifacts
           if-no-files-found: ignore
 
+  code-quality:
+    name: Code Quality
+    if: inputs.phpcs != 'off' || inputs.phpstan != 'off'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check inputs
+        env:
+          PHPCS: ${{ inputs.phpcs }}
+          PHPSTAN: ${{ inputs.phpstan }}
+        run: |
+          for value in "$PHPCS" "$PHPSTAN"; do
+            case "$value" in
+              fail|warn|off) ;;
+              *) echo "::error::phpcs and phpstan take fail, warn or off, not '$value'."; exit 1 ;;
+            esac
+          done
+      - uses: actions/checkout@v6
+        with:
+          path: project
+      - uses: actions/checkout@v6
+        with:
+          repository: SU-SWS/stanford-caravan
+          ref: ${{ inputs.caravan-ref }}
+          path: caravan
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.primary-php }}
+          extensions: gd, pdo_mysql, mysqli, zip, bz2, calendar, imagick
+          coverage: none
+          ini-values: memory_limit=-1
+          tools: composer:v2
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-php${{ inputs.primary-php }}-${{ hashFiles('project/composer.json') }}
+          restore-keys: composer-${{ runner.os }}-php${{ inputs.primary-php }}-
+      - name: PHPCS
+        if: inputs.phpcs != 'off'
+        env:
+          MODE: ${{ inputs.phpcs }}
+        run: '"$CI_DIR/phpcs.sh" "$EXT_DIR" "$RUNNER_TEMP/code-quality"'
+      - name: Build project
+        id: build
+        # Runs even when PHPCS failed, so one run reports both tools.
+        if: inputs.phpstan != 'off' && !cancelled()
+        env:
+          WITH_PHPSTAN: '1'
+        run: '"$CI_DIR/build.sh" "$EXT_DIR" "$SITE_DIR"'
+      - name: PHPStan
+        if: inputs.phpstan != 'off' && !cancelled() && steps.build.outcome == 'success'
+        env:
+          MODE: ${{ inputs.phpstan }}
+          PHPSTAN_LEVEL: ${{ inputs.phpstan-level }}
+        run: '"$CI_DIR/phpstan.sh" "$EXT_DIR" "$SITE_DIR" "$RUNNER_TEMP/code-quality"'
+      - name: Save reports
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: code-quality
+          path: ${{ runner.temp }}/code-quality
+          if-no-files-found: ignore
+
   codeception:
     name: Codeception (${{ matrix.suite }}, ${{ matrix.php }}, ${{ matrix.shard }})
     needs: [matrix]
@@ -292,16 +369,19 @@ jobs:
     # skipped or cancelled job can never look like a pass.
     name: Test Results
     if: always()
-    needs: [matrix, phpunit, codeception]
+    needs: [matrix, phpunit, code-quality, codeception]
     runs-on: ubuntu-24.04
     steps:
       - env:
           MATRIX: ${{ needs.matrix.result }}
           PHPUNIT: ${{ needs.phpunit.result }}
           PHPUNIT_ON: ${{ inputs.phpunit }}
+          QUALITY: ${{ needs.code-quality.result }}
+          QUALITY_ON: ${{ inputs.phpcs != 'off' || inputs.phpstan != 'off' }}
           CODECEPTION: ${{ needs.codeception.result }}
           CODECEPTION_ON: ${{ needs.matrix.outputs.suites != '[]' }}
         run: |
-          echo "matrix=$MATRIX phpunit=$PHPUNIT codeception=$CODECEPTION"
+          echo "matrix=$MATRIX phpunit=$PHPUNIT code-quality=$QUALITY codeception=$CODECEPTION"
           ok() { [ "$1" = "success" ] || { [ "$1" = "skipped" ] && [ "$2" = "false" ]; }; }
-          ok "$MATRIX" true && ok "$PHPUNIT" "$PHPUNIT_ON" && ok "$CODECEPTION" "$CODECEPTION_ON"
+          ok "$MATRIX" true && ok "$PHPUNIT" "$PHPUNIT_ON" && ok "$QUALITY" "$QUALITY_ON" \
+            && ok "$CODECEPTION" "$CODECEPTION_ON"
