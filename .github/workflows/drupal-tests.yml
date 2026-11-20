@@ -1,0 +1,320 @@
+# Reusable workflow: PHPUnit and Codeception tests for a Drupal module,
+# theme or profile, run with sws-caravan on a bare GitHub runner.
+#
+# Call it from the extension's repository:
+#
+#   jobs:
+#     tests:
+#       uses: SU-SWS/stanford-caravan/.github/workflows/drupal-tests.yml@11.x
+#       with:
+#         codeception-shards: 4
+#       secrets: inherit
+#
+# See config/.github/workflows/tests.yml for a full caller, and the README for
+# every input.
+#
+# How it runs without a custom container: setup-php installs PHP on the runner,
+# MySQL and Selenium run as service containers, and PHP's built-in server
+# serves the site. Caravan hard-codes the hostnames "mysql" and "selenium"
+# (phpunit.xml, codeception.yml) and "drupal8ci" (the site URL the browser
+# opens), so the runner maps them in /etc/hosts and Selenium maps "drupal8ci"
+# back to the runner.
+name: Drupal tests
+on:
+  workflow_call:
+    inputs:
+      php-versions:
+        description: JSON list of PHP versions for PHPUnit, and for Codeception on release branches.
+        type: string
+        default: '["8.3", "8.4", "8.5"]'
+      primary-php:
+        description: PHP version for Codeception on other branches.
+        type: string
+        default: '8.4'
+      release-branch-pattern:
+        description: Bash glob for branches that run Codeception on every PHP version.
+        type: string
+        default: '*.x'
+      phpunit:
+        description: Run PHPUnit.
+        type: boolean
+        default: true
+      coverage:
+        description: Run PHPUnit with code coverage (Unit and Kernel tests only).
+        type: boolean
+        default: true
+      coverage-required:
+        description: Minimum line coverage percentage when coverage is on.
+        type: number
+        default: 90
+      codeception-suites:
+        description: JSON list of Codeception suites. '[]' skips Codeception.
+        type: string
+        default: '["acceptance", "functional"]'
+      codeception-shards:
+        description: Number of shards to split each Codeception suite into.
+        type: number
+        default: 1
+      profile:
+        description: Install profile for Codeception when testing a module or theme.
+        type: string
+        default: standard
+      modules:
+        description: Comma-separated extra modules to enable before Codeception runs.
+        type: string
+        default: ''
+      test-dir:
+        description: Codeception test directory, relative to the extension.
+        type: string
+        default: tests/codeception
+      core-version:
+        description: Drupal core version constraint (e.g. 11 or 11.3). Empty uses caravan's default.
+        type: string
+        default: ''
+      caravan-version:
+        description: Composer constraint for su-sws/stanford-caravan.
+        type: string
+        default: 11.x-dev
+      mysql-image:
+        type: string
+        default: mysql:8.0
+      selenium-image:
+        type: string
+        default: selenium/standalone-chrome:130.0
+    secrets:
+      STANFORD_ENCRYPT:
+        description: Encryption key some extensions need for Codeception.
+        required: false
+permissions:
+  contents: read
+env:
+  DRUPAL_DATABASE_NAME: drupal
+  DRUPAL_DATABASE_USERNAME: drupal
+  DRUPAL_DATABASE_PASSWORD: drupal
+  DRUPAL_DATABASE_HOST: 127.0.0.1
+jobs:
+  matrix:
+    name: Test Matrix
+    runs-on: ubuntu-24.04
+    outputs:
+      codeception-php: ${{ steps.set.outputs.codeception-php }}
+      suites: ${{ steps.set.outputs.suites }}
+      shards: ${{ steps.set.outputs.shards }}
+    steps:
+      - id: set
+        env:
+          PHP_VERSIONS: ${{ inputs.php-versions }}
+          PRIMARY_PHP: ${{ inputs.primary-php }}
+          PATTERN: ${{ inputs.release-branch-pattern }}
+          SUITES: ${{ inputs.codeception-suites }}
+          SHARDS: ${{ inputs.codeception-shards }}
+          EVENT: ${{ github.event_name }}
+          BRANCH: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          # Release branches and manual runs test every PHP version. Other
+          # branches run Codeception on the primary version only.
+          # shellcheck disable=SC2053 # PATTERN is a glob on purpose.
+          if [ "$EVENT" = "workflow_dispatch" ] || { [ "$REF_TYPE" = "branch" ] && [[ $BRANCH == $PATTERN ]]; }; then
+            php=$(jq -c . <<< "$PHP_VERSIONS")
+          else
+            php=$(jq -c -n --arg v "$PRIMARY_PHP" '[$v]')
+          fi
+          {
+            echo "codeception-php=$php"
+            echo "suites=$(jq -c . <<< "$SUITES")"
+            echo "shards=$(seq 1 "$SHARDS" | jq -s -c .)"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  phpunit:
+    name: PHPUnit (${{ matrix.php }})
+    if: inputs.phpunit
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ${{ fromJSON(inputs.php-versions) }}
+    runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: ${{ inputs.mysql-image }}
+        env:
+          MYSQL_DATABASE: drupal
+          MYSQL_USER: drupal
+          MYSQL_PASSWORD: drupal
+          MYSQL_ROOT_PASSWORD: drupal
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: project
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: gd, pdo_mysql, mysqli, zip, bz2, calendar, imagick
+          coverage: ${{ inputs.coverage && 'pcov' || 'none' }}
+          ini-values: memory_limit=-1
+          tools: composer:v2
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('project/composer.json') }}
+          restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
+      - name: Prepare runner
+        env:
+          CARAVAN_VERSION: ${{ inputs.caravan-version }}
+        run: |
+          echo "127.0.0.1 mysql selenium drupal8ci" | sudo tee -a /etc/hosts
+          # Caravan deletes and recreates /var/www/html, so it needs /var/www.
+          sudo mkdir -p /var/www/html/docroot
+          sudo chown -R "$USER" /var/www
+          mysql -h 127.0.0.1 -u root -pdrupal -e 'SET GLOBAL max_allowed_packet=67108864;'
+          composer global config minimum-stability dev
+          composer global config prefer-stable true
+          # Don't let Composer's security policy block the dev installs.
+          f="$(composer global config home)/composer.json"
+          jq '.config.policy = false' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+          composer global require "su-sws/stanford-caravan:$CARAVAN_VERSION"
+          composer global config bin-dir --absolute >> "$GITHUB_PATH"
+      - name: Run PHPUnit
+        env:
+          COVERAGE: ${{ inputs.coverage }}
+          COVERAGE_REQUIRED: ${{ inputs.coverage-required }}
+          CORE_VERSION: ${{ inputs.core-version }}
+        run: |
+          args=(--extension-dir="$GITHUB_WORKSPACE/project")
+          [ "$COVERAGE" = "true" ] && args+=(--with-coverage --coverage-required="$COVERAGE_REQUIRED")
+          [ -n "$CORE_VERSION" ] && args+=(--core-version="$CORE_VERSION")
+          sws-caravan phpunit /var/www/html "${args[@]}"
+      - name: Save test results
+        uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: phpunit-php${{ matrix.php }}
+          path: /var/www/html/artifacts
+          if-no-files-found: ignore
+
+  codeception:
+    name: Codeception (${{ matrix.suite }}, ${{ matrix.php }}, ${{ matrix.shard }})
+    needs: [matrix]
+    if: needs.matrix.outputs.suites != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: ${{ fromJSON(needs.matrix.outputs.suites) }}
+        php: ${{ fromJSON(needs.matrix.outputs.codeception-php) }}
+        shard: ${{ fromJSON(needs.matrix.outputs.shards) }}
+    runs-on: ubuntu-24.04
+    services:
+      selenium:
+        # Only the functional suite uses WebDriver. An empty image skips the service.
+        image: ${{ matrix.suite == 'functional' && inputs.selenium-image || '' }}
+        ports:
+          - 4444:4444
+        options: >-
+          --shm-size=2g
+          --add-host=drupal8ci:host-gateway
+      mysql:
+        image: ${{ inputs.mysql-image }}
+        env:
+          MYSQL_DATABASE: drupal
+          MYSQL_USER: drupal
+          MYSQL_PASSWORD: drupal
+          MYSQL_ROOT_PASSWORD: drupal
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: project
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: gd, pdo_mysql, mysqli, zip, bz2, calendar, imagick
+          coverage: none
+          ini-values: memory_limit=-1
+          tools: composer:v2
+      - uses: actions/cache@v5
+        with:
+          path: ~/.cache/composer/files
+          key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('project/composer.json') }}
+          restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
+      - name: Prepare runner
+        env:
+          CARAVAN_VERSION: ${{ inputs.caravan-version }}
+        run: |
+          echo "127.0.0.1 mysql selenium drupal8ci" | sudo tee -a /etc/hosts
+          # Caravan deletes and recreates /var/www/html, so it needs /var/www.
+          sudo mkdir -p /var/www/html/docroot
+          sudo chown -R "$USER" /var/www
+          mysql -h 127.0.0.1 -u root -pdrupal -e 'SET GLOBAL max_allowed_packet=67108864;'
+          composer global config minimum-stability dev
+          composer global config prefer-stable true
+          # Don't let Composer's security policy block the dev installs.
+          f="$(composer global config home)/composer.json"
+          jq '.config.policy = false' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
+          composer global require "su-sws/stanford-caravan:$CARAVAN_VERSION"
+          composer global config bin-dir --absolute >> "$GITHUB_PATH"
+      - name: Start web server
+        run: |
+          # Serve on port 80 as the runner user, so the web server and drush
+          # own the same files. Caravan replaces /var/www/html/docroot later;
+          # the server resolves paths per request, so that's fine.
+          sudo sysctl -q net.ipv4.ip_unprivileged_port_start=80
+          PHP_CLI_SERVER_WORKERS=8 nohup php -S 0.0.0.0:80 -t /var/www/html/docroot \
+            /var/www/html/docroot/.ht.router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
+      - name: Run Codeception
+        env:
+          STANFORD_ENCRYPT: ${{ secrets.STANFORD_ENCRYPT }}
+          SUITE: ${{ matrix.suite }}
+          SHARD: ${{ matrix.shard }}/${{ inputs.codeception-shards }}
+          PROFILE: ${{ inputs.profile }}
+          MODULES: ${{ inputs.modules }}
+          TEST_DIR: ${{ inputs.test-dir }}
+          CORE_VERSION: ${{ inputs.core-version }}
+        run: |
+          args=(--extension-dir="$GITHUB_WORKSPACE/project" --suites="$SUITE" --shard="$SHARD"
+            --profile="$PROFILE" --test-dir="$TEST_DIR")
+          [ -n "$MODULES" ] && args+=(--modules="$MODULES")
+          [ -n "$CORE_VERSION" ] && args+=(--core-version="$CORE_VERSION")
+          sws-caravan codeception /var/www/html "${args[@]}"
+          # Caravan can exit 0 without running anything, e.g. a failed install.
+          test -f "/var/www/html/artifacts/$SUITE/results.html"
+      - name: Save test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: codeception-${{ matrix.suite }}-php${{ matrix.php }}-${{ matrix.shard }}
+          path: |
+            /var/www/html/artifacts
+            ${{ runner.temp }}/php-server.log
+          if-no-files-found: ignore
+
+  result:
+    # Fails unless every job succeeded or was turned off by an input, so a
+    # skipped or cancelled job can never look like a pass.
+    name: Test Results
+    if: always()
+    needs: [matrix, phpunit, codeception]
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          MATRIX: ${{ needs.matrix.result }}
+          PHPUNIT: ${{ needs.phpunit.result }}
+          PHPUNIT_ON: ${{ inputs.phpunit }}
+          CODECEPTION: ${{ needs.codeception.result }}
+          CODECEPTION_ON: ${{ needs.matrix.outputs.suites != '[]' }}
+        run: |
+          echo "matrix=$MATRIX phpunit=$PHPUNIT codeception=$CODECEPTION"
+          ok() { [ "$1" = "success" ] || { [ "$1" = "skipped" ] && [ "$2" = "false" ]; }; }
+          ok "$MATRIX" true && ok "$PHPUNIT" "$PHPUNIT_ON" && ok "$CODECEPTION" "$CODECEPTION_ON"
