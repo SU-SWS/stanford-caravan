@@ -197,6 +197,11 @@ class DrupalUser extends Module {
     $url = substr($gen_url, strpos($gen_url, '/user/reset'));
 
     $this->driver->amOnPage($url);
+    // In a browser, the page can still be rendering when amOnPage() returns,
+    // so wait for the confirmation instead of checking for it straight away.
+    if (method_exists($this->driver, 'waitForText')) {
+      $this->driver->waitForText('one-time login link.', 10);
+    }
     $this->driver->see('one-time login link.');
     $this->driver->see($username, 'h1');
   }
