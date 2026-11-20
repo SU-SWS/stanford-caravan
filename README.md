@@ -27,7 +27,9 @@ required status check.
 
 It runs on a plain `ubuntu-24.04` runner, with no custom container: PHP comes
 from `shivammathur/setup-php`, MySQL and Selenium run as service containers,
-and PHP's built-in web server serves the site.
+and PHP's built-in web server serves the site. Each step runs one of the
+scripts in [ci/](ci), and the test site installs this package from the same
+checkout.
 
 | Input | Default | What it does |
 |---|---|---|
@@ -42,8 +44,8 @@ and PHP's built-in web server serves the site.
 | `profile` | `standard` | Install profile for Codeception when testing a module or theme. |
 | `modules` | (none) | Comma-separated extra modules to enable before Codeception runs. |
 | `test-dir` | `tests/codeception` | Codeception tests, relative to the extension. |
-| `core-version` | caravan's default | Drupal core version, e.g. `11` or `11.3`. |
-| `caravan-version` | `11.x-dev` | Composer constraint for this package. |
+| `core-version` | `^11` | Drupal core version, e.g. `11`, `11.3` or `^11`. |
+| `caravan-ref` | `11.x` | Ref of this repository for the `ci/` scripts, configs and Codeception modules. Keep it the same as the ref on the `uses:` line. |
 | `mysql-image` | `mysql:8.0` | MySQL service image. |
 | `selenium-image` | `selenium/standalone-chrome:130.0` | Selenium image. Only the functional suite starts it. |
 
@@ -52,6 +54,25 @@ in the caller provides it.
 
 Test results are uploaded as `phpunit-php<version>` (on failure) and
 `codeception-<suite>-php<version>-<shard>` artifacts.
+
+### ci/ scripts
+
+The workflow's steps, usable on their own (for example to reproduce a CI run
+locally). Each takes `<extension dir> <site dir>` and reads the settings named
+at the top of the script from the environment.
+
+| Script | Replaces |
+|---|---|
+| `ci/lint.sh` | The PHP syntax and field name checks in `sws-caravan phpunit` (takes only `<extension dir>`) |
+| `ci/build.sh` | Building the Drupal project, in both commands |
+| `ci/phpunit.sh` | Running PHPUnit and checking coverage, in `sws-caravan phpunit` |
+| `ci/install.sh` | Installing Drupal and enabling modules, in `sws-caravan codeception` |
+| `ci/codeception.sh` | Running the suites and retrying failures, in `sws-caravan codeception` |
+
+The `sws-caravan` Robo commands (`phpunit`, `codeception`, `back-to-dev`) are
+**deprecated** in 11.x and will be removed in 12.x. They still work, and print a
+deprecation warning (a warning annotation in GitHub Actions) each time they run.
+Move to the workflow above; `back-to-dev` has no replacement here.
 
 
 Troubleshooting

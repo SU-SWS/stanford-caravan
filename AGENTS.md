@@ -1,0 +1,121 @@
+# AGENTS.md
+
+Guidance for AI coding agents working in this repository (`su-sws/stanford-caravan`).
+
+## What this repo is
+
+Test tooling for Stanford's Drupal modules, themes and profiles. It has four parts:
+
+| Path | What it is |
+|---|---|
+| `.github/workflows/drupal-tests.yml` | Reusable GitHub Actions workflow (`on: workflow_call`) that runs PHPUnit and Codeception for the extension in the calling repository. |
+| `ci/` | The shell and PHP scripts that workflow runs, one per step. |
+| `src/Codeception/Drupal/` | Codeception modules that extensions' tests use: `DrupalBootstrap`, `DrupalDrush`, `DrupalEntity`, `DrupalUser`. |
+| `config/` | Files copied into the test project: `composer.json` (merged in), `circleci.settings.php` (becomes `settings.php`), `phpunit.xml`, `codeception/*.yml`, `patches/`, and `config/.github/workflows/tests.yml` (the caller template). |
+
+`sws-caravan`, `src/Robo/` and `src/CaravanTrait.php` are the older Robo commands
+(`sws-caravan phpunit`, `codeception`, `back-to-dev`). They are **deprecated in
+11.x and will be removed in 12.x**. The `ci/` scripts replace `phpunit` and
+`codeception`; `back-to-dev` has no replacement. Each command prints a deprecation
+warning from `RoboFile::warnDeprecated()` when it runs.
+
+On 11.x, **don't remove or change the Robo commands' behavior**. Many repositories
+still install `11.x-dev` (or an older branch) and run them in CI and release
+jobs. Remove them only on 12.x. Nothing in `ci/` or `src/Codeception/` may depend
+on them, so the removal stays a deletion.
+
+`README.md` is partly out of date: it mentions `config/.circleci` and `CHANGELOG.txt`,
+which don't exist. Its "GitHub Actions" section is current.
+
+## Branches and versions
+
+- Main branch is `11.x` (Drupal 11). There are no tags yet; callers use
+  `@11.x` and Composer installs `11.x-dev`.
+- **A push to `11.x` changes CI for every caller at once.** Nothing pins a caller to a
+  commit. Test workflow and `ci/` changes on another branch first (below).
+- Don't commit or push unless asked. Never add AI/Claude attribution to commits or
+  pull requests.
+
+## How the workflow fits together
+
+- The caller checks out its extension to `project/`. The workflow checks out this
+  repository at the `caravan-ref` input to `caravan/` and builds the site in `site/`,
+  all under `$GITHUB_WORKSPACE`.
+- `caravan-ref` must match the ref on the caller's `uses:` line, or the workflow
+  and its scripts come from different versions.
+- `ci/merge-composer.php --caravan=<path>` adds this checkout to the test project as
+  a Composer `path` repository and requires it at `*`. The site's Codeception
+  modules and the configs therefore always come from the same checkout as the
+  scripts, whatever version the extension's `composer.json` asks for.
+- Jobs: `matrix` → `phpunit` (per PHP version) and `codeception` (suite × PHP ×
+  shard) → `result` ("Test Results"). `result` fails unless every job succeeded,
+  or was turned off by an input. Callers add their own **All Tests Pass** job on
+  top of it, and that is the required status check, so don't rename either job
+  casually.
+- There is no custom container. `shivammathur/setup-php` installs PHP, and MySQL and
+  Selenium are service containers. PHP's built-in server serves the site on
+  port 80 as the runner user.
+- `config/codeception/codeception.yml`'s `github_actions` environment expects the
+  hostnames `selenium` (WebDriver) and `drupal8ci` (the site URL the browser
+  opens). The workflow adds both to the runner's `/etc/hosts`, and Selenium maps
+  `drupal8ci` to the runner with `--add-host=drupal8ci:host-gateway`. Changing
+  those names means changing the config and the workflow together.
+- Only the `functional` suite uses WebDriver, so Selenium starts only for it (an
+  empty service `image` skips the service).
+
+## The ci/ scripts
+
+- Each takes `<extension dir> <site dir>` (`lint.sh` only takes the extension) and
+  reads its settings from environment variables listed in its header comment.
+  Keep that header accurate.
+- `lib.sh` is sourced, not run. It sets `CI_DIR`, `CARAVAN_DIR` and `CONFIG_DIR`,
+  and has the extension helpers (`ext_name`, `ext_type`, `ext_path`,
+  `core_constraint`, `codeception_config`).
+- Scripts use `set -euo pipefail`. A script's exit status is the step's result.
+- `codeception.sh` reruns failed tests once with `--group failed`. The retry's result
+  decides the step.
+- Run shellcheck and actionlint after changes:
+
+  ```bash
+  docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:v0.10.0 -x -P ci ci/*.sh
+  docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color=false
+  ```
+
+  actionlint 1.7.7 rejects YAML anchors, so the workflow doesn't use them.
+
+## Running the scripts locally
+
+The scripts work outside GitHub Actions. You need PHP (with pcov for coverage),
+Composer, rsync and a MySQL server. For example, with MySQL in Docker on port 33307:
+
+```bash
+export DRUPAL_DATABASE_NAME=drupal DRUPAL_DATABASE_USERNAME=drupal \
+  DRUPAL_DATABASE_PASSWORD=drupal DRUPAL_DATABASE_HOST=127.0.0.1 DRUPAL_DATABASE_PORT=33307
+ci/lint.sh ../my_module
+WITH_CODECEPTION=1 ci/build.sh ../my_module /tmp/site
+COVERAGE=true ci/phpunit.sh ../my_module /tmp/site
+ci/install.sh ../my_module /tmp/site
+(cd /tmp/site/web && php -S 127.0.0.1:8089 .ht.router.php &)
+SUITES=acceptance DOMAIN=localhost:8089 ci/codeception.sh ../my_module /tmp/site
+```
+
+- `build.sh` deletes the site directory first.
+- Without `GITHUB_ACTIONS` set, Codeception doesn't use the `github_actions`
+  environment, so the functional suite needs a local Selenium on port 4444.
+
+## Testing a workflow change on GitHub
+
+1. Push this repository's change to a branch other than `11.x`.
+2. In a test branch of a calling repository, point both `uses: ...@<branch>` and
+   `caravan-ref: <branch>` at it, then push.
+3. Merge to `11.x` once the run passes, and point the caller back at `11.x`.
+
+## Codeception modules
+
+The `src/Codeception/Drupal/` classes are part of the public API for every
+extension's tests: suite configs enable them by class name, and tests call their
+methods (`createEntity`, `createUserWithRoles`, `logInWithRole`, `runDrush`,
+`fillWysiwygEditor`, `waitForAjaxToFinish`, ...). Keep those names and
+signatures backward compatible. `DrupalEntity` and `DrupalUser` delete what tests
+create, controlled by their `cleanup_test`, `cleanup_failed` and `cleanup_suite`
+settings in `config/codeception/codeception.yml`.

@@ -11,6 +11,9 @@ use StanfordCaravan\CaravanTrait;
  * CI/CD tools for running tests against themes, modules, and profiles.
  *
  * @package StanfordCaravan\Robo\Tasks
+ *
+ * @deprecated in 11.x and removed in 12.x. Use the
+ *   .github/workflows/drupal-tests.yml workflow, or the ci/ scripts it runs.
  */
 class RoboFile extends Tasks {
 
@@ -21,6 +24,25 @@ class RoboFile extends Tasks {
    * RoboFile constructor.
    */
   public function __construct() {}
+
+  /**
+   * Warn that a command is deprecated.
+   *
+   * Writes to stderr, and in GitHub Actions also adds a warning annotation to
+   * the run.
+   *
+   * @param string $command
+   *   The sws-caravan command name.
+   * @param string $instead
+   *   What to use instead.
+   */
+  protected function warnDeprecated(string $command, string $instead): void {
+    $message = "sws-caravan $command is deprecated and will be removed in stanford-caravan 12.x. $instead";
+    fwrite(STDERR, "[Deprecated] $message" . PHP_EOL);
+    if (getenv('GITHUB_ACTIONS')) {
+      echo "::warning title=sws-caravan $command is deprecated::$message" . PHP_EOL;
+    }
+  }
 
   /**
    * Set the global git configs if they aren't already set.
@@ -62,8 +84,11 @@ class RoboFile extends Tasks {
    *   ${CIRCLE_WORKING_DIRECTORY}
    * @usage vendor/bin/sws-caravan back-to-dev ${CIRCLE_TAG}
    *   ${CIRCLE_WORKING_DIRECTORY} main
+   *
+   * @deprecated in 11.x and removed in 12.x, with no replacement here.
    */
   public function backToDev($old_semver, $directory, $main_branch = 'master') {
+    $this->warnDeprecated('back-to-dev', 'Nothing in stanford-caravan replaces it; move the release steps into the repository.');
     $this->setGlobalGitConfigs();
 
     [$major, $minor, $point] = explode('.', $old_semver);
@@ -143,6 +168,9 @@ class RoboFile extends Tasks {
    * @options coverage-required Set the percent of the coverage that is needed.
    *
    * @command phpunit
+   *
+   * @deprecated in 11.x and removed in 12.x. Use the drupal-tests.yml
+   *   workflow, or ci/lint.sh, ci/build.sh and ci/phpunit.sh.
    */
   public function phpunit($html_path, array $options = [
     'core-version' => NULL,
@@ -151,6 +179,7 @@ class RoboFile extends Tasks {
     'coverage-required' => 90,
   ]
   ) {
+    $this->warnDeprecated('phpunit', 'Use the drupal-tests.yml workflow, or ci/lint.sh, ci/build.sh and ci/phpunit.sh.');
     if (empty($options['extension-dir'])) {
       throw new AbortTasksException('--extension-dir is required');
     }
@@ -195,6 +224,8 @@ class RoboFile extends Tasks {
    *   Path to coverage report.
    * @param int $required_coverage
    *   Required coverage percent.
+   *
+   * @deprecated in 11.x and removed in 12.x. Use ci/check-coverage.php.
    */
   public function checkCoverageReport($report, $required_coverage) {
     if (!file_exists($report)) {
@@ -318,6 +349,9 @@ class RoboFile extends Tasks {
    * @options core-version Drupal core version: ex 11 or 11.4.
    *
    * @link https://codeception.com/quickstart
+   *
+   * @deprecated in 11.x and removed in 12.x. Use the drupal-tests.yml
+   *   workflow, or ci/build.sh, ci/install.sh and ci/codeception.sh.
    */
   public function codeCeption($html_path, array $options = [
     'extension-dir' => NULL,
@@ -330,6 +364,7 @@ class RoboFile extends Tasks {
     'core-version' => NULL,
   ]
   ) {
+    $this->warnDeprecated('codeception', 'Use the drupal-tests.yml workflow, or ci/build.sh, ci/install.sh and ci/codeception.sh.');
     $extension_dir = is_null($options['extension-dir']) ? "$html_path/.." : $options['extension-dir'];
     $tasks[] = $this->taskDrupalStack($html_path)
       ->testExtension($extension_dir)

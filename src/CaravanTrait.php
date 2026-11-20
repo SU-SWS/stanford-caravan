@@ -4,6 +4,8 @@ namespace StanfordCaravan;
 
 /**
  * Caravan trait with shared methods.
+ *
+ * @deprecated in 11.x and removed in 12.x, with the Robo commands that use it.
  */
 trait CaravanTrait {
 

@@ -1,5 +1,5 @@
 # Reusable workflow: PHPUnit and Codeception tests for a Drupal module,
-# theme or profile, run with sws-caravan on a bare GitHub runner.
+# theme or profile, on a bare GitHub runner.
 #
 # Call it from the extension's repository:
 #
@@ -13,12 +13,15 @@
 # See config/.github/workflows/tests.yml for a full caller, and the README for
 # every input.
 #
-# How it runs without a custom container: setup-php installs PHP on the runner,
-# MySQL and Selenium run as service containers, and PHP's built-in server
-# serves the site. Caravan hard-codes the hostnames "mysql" and "selenium"
-# (phpunit.xml, codeception.yml) and "drupal8ci" (the site URL the browser
-# opens), so the runner maps them in /etc/hosts and Selenium maps "drupal8ci"
-# back to the runner.
+# How it runs: setup-php installs PHP on the runner, MySQL and Selenium run as
+# service containers, and PHP's built-in server serves the site. Each step
+# calls a script in ci/, from a checkout of this repository at caravan-ref, and
+# the test site installs stanford-caravan from that same checkout.
+#
+# codeception.yml's github_actions environment uses the hostnames "selenium"
+# (the WebDriver host) and "drupal8ci" (the site URL the browser opens). The
+# runner maps both in /etc/hosts, and Selenium maps "drupal8ci" back to the
+# runner.
 name: Drupal tests
 on:
   workflow_call:
@@ -68,13 +71,13 @@ on:
         type: string
         default: tests/codeception
       core-version:
-        description: Drupal core version constraint (e.g. 11 or 11.3). Empty uses caravan's default.
+        description: Drupal core version (e.g. 11, 11.3 or ^11). Empty means ^11.
         type: string
         default: ''
-      caravan-version:
-        description: Composer constraint for su-sws/stanford-caravan.
+      caravan-ref:
+        description: Ref of SU-SWS/stanford-caravan for the ci/ scripts, configs and Codeception modules. Keep it the same as the ref on the uses line.
         type: string
-        default: 11.x-dev
+        default: 11.x
       mysql-image:
         type: string
         default: mysql:8.0
@@ -88,6 +91,10 @@ on:
 permissions:
   contents: read
 env:
+  EXT_DIR: ${{ github.workspace }}/project
+  CI_DIR: ${{ github.workspace }}/caravan/ci
+  SITE_DIR: ${{ github.workspace }}/site
+  CORE_VERSION: ${{ inputs.core-version }}
   DRUPAL_DATABASE_NAME: drupal
   DRUPAL_DATABASE_USERNAME: drupal
   DRUPAL_DATABASE_PASSWORD: drupal
@@ -153,6 +160,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           path: project
+      - uses: actions/checkout@v6
+        with:
+          repository: SU-SWS/stanford-caravan
+          ref: ${{ inputs.caravan-ref }}
+          path: caravan
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -165,38 +177,23 @@ jobs:
           path: ~/.cache/composer/files
           key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('project/composer.json') }}
           restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
-      - name: Prepare runner
-        env:
-          CARAVAN_VERSION: ${{ inputs.caravan-version }}
-        run: |
-          echo "127.0.0.1 mysql selenium drupal8ci" | sudo tee -a /etc/hosts
-          # Caravan deletes and recreates /var/www/html, so it needs /var/www.
-          sudo mkdir -p /var/www/html/docroot
-          sudo chown -R "$USER" /var/www
-          mysql -h 127.0.0.1 -u root -pdrupal -e 'SET GLOBAL max_allowed_packet=67108864;'
-          composer global config minimum-stability dev
-          composer global config prefer-stable true
-          # Don't let Composer's security policy block the dev installs.
-          f="$(composer global config home)/composer.json"
-          jq '.config.policy = false' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
-          composer global require "su-sws/stanford-caravan:$CARAVAN_VERSION"
-          composer global config bin-dir --absolute >> "$GITHUB_PATH"
+      - name: Lint
+        run: '"$CI_DIR/lint.sh" "$EXT_DIR"'
+      - name: Build project
+        run: '"$CI_DIR/build.sh" "$EXT_DIR" "$SITE_DIR"'
       - name: Run PHPUnit
         env:
           COVERAGE: ${{ inputs.coverage }}
           COVERAGE_REQUIRED: ${{ inputs.coverage-required }}
-          CORE_VERSION: ${{ inputs.core-version }}
         run: |
-          args=(--extension-dir="$GITHUB_WORKSPACE/project")
-          [ "$COVERAGE" = "true" ] && args+=(--with-coverage --coverage-required="$COVERAGE_REQUIRED")
-          [ -n "$CORE_VERSION" ] && args+=(--core-version="$CORE_VERSION")
-          sws-caravan phpunit /var/www/html "${args[@]}"
+          mysql -h 127.0.0.1 -u root -pdrupal -e 'SET GLOBAL max_allowed_packet=67108864;'
+          "$CI_DIR/phpunit.sh" "$EXT_DIR" "$SITE_DIR"
       - name: Save test results
         uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: phpunit-php${{ matrix.php }}
-          path: /var/www/html/artifacts
+          path: site/artifacts
           if-no-files-found: ignore
 
   codeception:
@@ -237,6 +234,11 @@ jobs:
       - uses: actions/checkout@v6
         with:
           path: project
+      - uses: actions/checkout@v6
+        with:
+          repository: SU-SWS/stanford-caravan
+          ref: ${{ inputs.caravan-ref }}
+          path: caravan
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
@@ -249,55 +251,40 @@ jobs:
           path: ~/.cache/composer/files
           key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('project/composer.json') }}
           restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
-      - name: Prepare runner
+      - name: Build project
         env:
-          CARAVAN_VERSION: ${{ inputs.caravan-version }}
+          WITH_CODECEPTION: '1'
+        run: '"$CI_DIR/build.sh" "$EXT_DIR" "$SITE_DIR"'
+      - name: Install Drupal
+        env:
+          PROFILE: ${{ inputs.profile }}
+          MODULES: ${{ inputs.modules }}
         run: |
-          echo "127.0.0.1 mysql selenium drupal8ci" | sudo tee -a /etc/hosts
-          # Caravan deletes and recreates /var/www/html, so it needs /var/www.
-          sudo mkdir -p /var/www/html/docroot
-          sudo chown -R "$USER" /var/www
           mysql -h 127.0.0.1 -u root -pdrupal -e 'SET GLOBAL max_allowed_packet=67108864;'
-          composer global config minimum-stability dev
-          composer global config prefer-stable true
-          # Don't let Composer's security policy block the dev installs.
-          f="$(composer global config home)/composer.json"
-          jq '.config.policy = false' "$f" > "$f.tmp" && mv "$f.tmp" "$f"
-          composer global require "su-sws/stanford-caravan:$CARAVAN_VERSION"
-          composer global config bin-dir --absolute >> "$GITHUB_PATH"
+          "$CI_DIR/install.sh" "$EXT_DIR" "$SITE_DIR"
       - name: Start web server
         run: |
+          echo "127.0.0.1 selenium drupal8ci" | sudo tee -a /etc/hosts
           # Serve on port 80 as the runner user, so the web server and drush
-          # own the same files. Caravan replaces /var/www/html/docroot later;
-          # the server resolves paths per request, so that's fine.
+          # own the same files.
           sudo sysctl -q net.ipv4.ip_unprivileged_port_start=80
-          PHP_CLI_SERVER_WORKERS=8 nohup php -S 0.0.0.0:80 -t /var/www/html/docroot \
-            /var/www/html/docroot/.ht.router.php > "$RUNNER_TEMP/php-server.log" 2>&1 &
+          cd "$SITE_DIR/web"
+          PHP_CLI_SERVER_WORKERS=8 nohup php -S 0.0.0.0:80 .ht.router.php \
+            > "$SITE_DIR/artifacts/php-server.log" 2>&1 &
+          curl -sS -o /dev/null -w 'Front page: %{http_code}\n' --retry 5 --retry-connrefused http://localhost/
       - name: Run Codeception
         env:
           STANFORD_ENCRYPT: ${{ secrets.STANFORD_ENCRYPT }}
-          SUITE: ${{ matrix.suite }}
+          SUITES: ${{ matrix.suite }}
           SHARD: ${{ matrix.shard }}/${{ inputs.codeception-shards }}
-          PROFILE: ${{ inputs.profile }}
-          MODULES: ${{ inputs.modules }}
           TEST_DIR: ${{ inputs.test-dir }}
-          CORE_VERSION: ${{ inputs.core-version }}
-        run: |
-          args=(--extension-dir="$GITHUB_WORKSPACE/project" --suites="$SUITE" --shard="$SHARD"
-            --profile="$PROFILE" --test-dir="$TEST_DIR")
-          [ -n "$MODULES" ] && args+=(--modules="$MODULES")
-          [ -n "$CORE_VERSION" ] && args+=(--core-version="$CORE_VERSION")
-          sws-caravan codeception /var/www/html "${args[@]}"
-          # Caravan can exit 0 without running anything, e.g. a failed install.
-          test -f "/var/www/html/artifacts/$SUITE/results.html"
+        run: '"$CI_DIR/codeception.sh" "$EXT_DIR" "$SITE_DIR"'
       - name: Save test results
         uses: actions/upload-artifact@v7
         if: always()
         with:
           name: codeception-${{ matrix.suite }}-php${{ matrix.php }}-${{ matrix.shard }}
-          path: |
-            /var/www/html/artifacts
-            ${{ runner.temp }}/php-server.log
+          path: site/artifacts
           if-no-files-found: ignore
 
   result:
