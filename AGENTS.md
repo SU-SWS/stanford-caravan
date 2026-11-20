@@ -54,6 +54,12 @@ repositories still on the Robo commands go on the 11.x branch.
   opens). The workflow adds both to the runner's `/etc/hosts`, and Selenium maps
   `drupal8ci` to the runner with `--add-host=drupal8ci:host-gateway`. Changing
   those names means changing the config and the workflow together.
+- The web server is a separate process started in its own step, and it's the
+  process that renders pages. Anything the site reads from the environment
+  (like `STANFORD_ENCRYPT`) must be set at job level, not only on the test step.
+- The runner image has no ImageMagick, which the Stanford profile uses as its image
+  toolkit. The `system-packages` input (default `imagemagick`) installs it with
+  apt. Without it, image uploads and derivatives silently fail.
 - Only the `functional` suite uses WebDriver, so Selenium starts only for it (an
   empty service `image` skips the service).
 

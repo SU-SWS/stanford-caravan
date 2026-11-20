@@ -41,9 +41,10 @@ checkout.
 | `phpstan-level` | `1` | PHPStan rule level, used when the extension has no `phpstan.neon`. |
 | `mysql-image` | `mysql:8.0` | MySQL service image. |
 | `selenium-image` | `selenium/standalone-chrome:130.0` | Selenium image. Only the functional suite starts it. |
+| `system-packages` | `imagemagick` | Space-separated apt packages installed on the runner for PHPUnit and Codeception. ImageMagick is the Stanford profile's image toolkit; without it, image uploads and image styles fail. |
 
-The optional secret `STANFORD_ENCRYPT` is passed to Codeception; `secrets: inherit`
-in the caller provides it.
+The optional secret `STANFORD_ENCRYPT` is set for the whole Codeception job (the
+install, the web server and the tests); `secrets: inherit` in the caller provides it.
 
 Test results are uploaded as `phpunit-php<version>` (on failure) and
 `codeception-<suite>-php<version>-<shard>` artifacts, and the code quality

@@ -99,6 +99,10 @@ on:
       selenium-image:
         type: string
         default: selenium/standalone-chrome:130.0
+      system-packages:
+        description: Space-separated apt packages to install on the runner. The default is the ImageMagick toolkit the Stanford profile uses for images.
+        type: string
+        default: imagemagick
     secrets:
       STANFORD_ENCRYPT:
         description: Encryption key some extensions need for Codeception.
@@ -192,6 +196,17 @@ jobs:
           path: ~/.cache/composer/files
           key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('project/composer.json') }}
           restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
+      - name: Install system packages
+        if: inputs.system-packages != ''
+        env:
+          PACKAGES: ${{ inputs.system-packages }}
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          read -r -a apt_packages <<< "$PACKAGES"
+          # The runner's package lists are usually current; refresh them only if needed.
+          sudo apt-get install -y -q --no-install-recommends "${apt_packages[@]}" \
+            || { sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends "${apt_packages[@]}"; }
+          if command -v convert > /dev/null; then convert -version | head -n 1; fi
       - name: Lint
         run: '"$CI_DIR/lint.sh" "$EXT_DIR"'
       - name: Build project
@@ -284,6 +299,10 @@ jobs:
         php: ${{ fromJSON(needs.matrix.outputs.codeception-php) }}
         shard: ${{ fromJSON(needs.matrix.outputs.shards) }}
     runs-on: ubuntu-24.04
+    env:
+      # For the install, the web server and the tests. The web server is the
+      # process that renders pages, so a step-level variable isn't enough.
+      STANFORD_ENCRYPT: ${{ secrets.STANFORD_ENCRYPT }}
     services:
       selenium:
         # Only the functional suite uses WebDriver. An empty image skips the service.
@@ -328,6 +347,17 @@ jobs:
           path: ~/.cache/composer/files
           key: composer-${{ runner.os }}-php${{ matrix.php }}-${{ hashFiles('project/composer.json') }}
           restore-keys: composer-${{ runner.os }}-php${{ matrix.php }}-
+      - name: Install system packages
+        if: inputs.system-packages != ''
+        env:
+          PACKAGES: ${{ inputs.system-packages }}
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          read -r -a apt_packages <<< "$PACKAGES"
+          # The runner's package lists are usually current; refresh them only if needed.
+          sudo apt-get install -y -q --no-install-recommends "${apt_packages[@]}" \
+            || { sudo apt-get update -q && sudo apt-get install -y -q --no-install-recommends "${apt_packages[@]}"; }
+          if command -v convert > /dev/null; then convert -version | head -n 1; fi
       - name: Build project
         env:
           WITH_CODECEPTION: '1'
@@ -351,7 +381,6 @@ jobs:
           curl -sS -o /dev/null -w 'Front page: %{http_code}\n' --retry 5 --retry-connrefused http://localhost/
       - name: Run Codeception
         env:
-          STANFORD_ENCRYPT: ${{ secrets.STANFORD_ENCRYPT }}
           SUITES: ${{ matrix.suite }}
           SHARD: ${{ matrix.shard }}/${{ inputs.codeception-shards }}
           TEST_DIR: ${{ inputs.test-dir }}
