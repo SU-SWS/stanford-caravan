@@ -21,6 +21,15 @@ REPORT_DIR="$(realpath "${3:-.}")"
 mode="${MODE:-fail}"
 ext="$SITE_DIR/$(ext_path "$EXT_DIR")"
 
+# PHPStan stops with "No files found to analyse" and writes no report.
+if ! has_php_files "$EXT_DIR"; then
+  echo "No PHP files to analyse."
+  if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+    printf '## PHPStan: no PHP files to analyse\n\n' >> "$GITHUB_STEP_SUMMARY"
+  fi
+  exit 0
+fi
+
 config=""
 for name in phpstan.neon phpstan.neon.dist; do
   if [ -f "$ext/$name" ]; then

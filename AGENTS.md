@@ -94,6 +94,10 @@ repositories still on the Robo commands go on the 11.x branch.
   move coder into the test project.
 - `drupal/core-dev` brings PHPStan and phpstan-drupal. `build.sh` adds only
   `phpstan/phpstan-deprecation-rules`, with `WITH_PHPSTAN=1`.
+- Some extensions have no PHP (ckeditor5_plugins is JavaScript and YAML). PHPStan
+  stops with "No files found to analyse" and writes no report then, so
+  `phpstan.sh` checks `has_php_files` first and passes with a note. An empty
+  report anywhere else means the tool broke, and `report.php` fails on it.
 - Both tools write checkstyle XML. `ci/report.php` makes annotations and the job
   summary from it, and is the only thing that decides pass or fail, so keep the
   tools' own exit codes ignored (`|| true`).

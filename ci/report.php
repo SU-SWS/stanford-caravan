@@ -29,9 +29,14 @@ if (!is_file($report)) {
   exit(1);
 }
 
+if (filesize($report) === 0) {
+  echo "::error::$tool wrote an empty report, so it didn't finish. Its output is above." . PHP_EOL;
+  exit(1);
+}
+libxml_use_internal_errors(TRUE);
 $xml = simplexml_load_file($report);
 if ($xml === FALSE) {
-  fwrite(STDERR, "$report isn't valid XML.\n");
+  echo "::error::$tool's report at $report isn't valid XML. Its output is above." . PHP_EOL;
   exit(1);
 }
 

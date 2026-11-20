@@ -35,6 +35,15 @@ core_constraint() {
   fi
 }
 
+# Succeed when directory $1 has PHP code outside tests/codeception, node_modules
+# and vendor: the files PHPStan analyses.
+has_php_files() {
+  [ -n "$(find "$1" -type f \( -name '*.php' -o -name '*.module' -o -name '*.inc' \
+    -o -name '*.install' -o -name '*.theme' -o -name '*.profile' \) \
+    -not -path '*/tests/codeception/*' -not -path '*/node_modules/*' -not -path '*/vendor/*' \
+    -print -quit)" ]
+}
+
 # Fill the site path and domain into one of caravan's Codeception configs.
 codeception_config() {
   sed -e "s|/var/www/html|$SITE_DIR|g" -e "s|localhost|${DOMAIN:-localhost}|g" "$1"
