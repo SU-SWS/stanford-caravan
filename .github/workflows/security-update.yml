@@ -1,0 +1,858 @@
+# Production security update (reusable workflow)
+# ==============================================
+#
+# Finds security advisories in the code a Drupal site's production runs on
+# Acquia and prepares deployable hotfixes that change as little as possible.
+# Nothing is deployed: a release engineer deploys the resulting tags.
+#
+# Site repositories call it from a small workflow (see
+# config/.github/workflows/security-update.yml):
+#
+#   jobs:
+#     security-update:
+#       uses: SU-SWS/stanford-caravan/.github/workflows/security-update.yml@12.x
+#       with:
+#         ref-source: cloud
+#       secrets: inherit
+#
+# Process
+# -------
+#  1. discover: find what production runs (ci/security/find-production.sh), from
+#     the Cloud Platform API (each application's environment, default prod),
+#     Site Factory's API, or a tag given by hand. Applications running the
+#     same tag are grouped; each distinct tag becomes one hotfix job.
+#  2. hotfix (one job per tag, one at a time so two jobs can't pick the same
+#     version):
+#     a. Read the tag from the Acquia git repository. Its composer.lock is what
+#        production runs; its commit message ("Built from …@sha") names the
+#        source commit, with the source tag in its name (7.0.3) as a fallback.
+#     b. Check out that commit, audit the lock and update only the vulnerable
+#        packages (ci/security/security-update.sh): patch releases, then any
+#        allowed release, then dependencies where strictly needed. drupal/core
+#        brings its pinned siblings. Unfixable advisories are reported.
+#     c. Choose the version: the base version plus the next free +N
+#        (7.0.3 -> 7.0.3+1), counting tags here, security/* branches,
+#        refs/security/* and the Acquia tags. Stop if an earlier run already
+#        built a fix for the same advisories on the same production tag. If
+#        that run saved the source but its Acquia tag is missing (it failed
+#        while building), build that saved source again under its version.
+#     d. Test the update (ci/security/test-update.sh): install one site per
+#        install profile and config sync directory on the production code,
+#        switch to the updated code, run the database updates and deploy
+#        hooks, and export the config before and after.
+#     e. Ship config the updates change, because production's `drush deploy`
+#        imports the sync directory right after the updates and would revert
+#        it. A sync directory committed here gets the change committed, plus
+#        one pull request for all of them against this repository's default
+#        branch, since security/<version> isn't merged back. One in a
+#        composer package (an install profile) gets a patch under
+#        patches/security/ listed in composer.json, plus a pull request to the
+#        package. Both come from ci/security/config-pr.sh. Merge them before the
+#        next release, then drop any patch.
+#     f. Commit everything as the hotfix version on security/<version>, with
+#        Production-Ref and Security-Fingerprint trailers for step c. Push
+#        it, and refs/security/<version>, which keeps the source reachable if
+#        the branch is deleted and doesn't trigger tag-based CI. The push uses
+#        CONFIG_PR_TOKEN when it can, so the site's `on: push` workflows run.
+#     g. Build with `drush sws:artifact:deploy` and push the tag
+#        YYYY-MM-DD_<version> to the git URL of every application that runs
+#        the production tag. Then open a pull request from
+#        security/<version> to the default branch (ci/security/hotfix-pr.sh), to
+#        review the composer changes and run the site's tests.
+#     h. Post to Slack: the tag, applications, updated dependencies, database
+#        updates and config pull requests, or the step that failed.
+#
+# Each hotfix job writes a job summary and uploads a security-report-<tag>
+# artifact with the audits, changes, database updates, config patches, site
+# test output, commit message and pull request bodies.
+#
+# Requirements for the site repository
+# ------------------------------------
+# - Builds with `drush sws:artifact:deploy` (su-sws/sws-drush-commands), with
+#   its options in drush/drush.yml, and installs sites with
+#   `drush drupal:install --site=<site>`.
+# - CI settings that reach the job's MySQL service. It accepts both
+#   conventions in use: root with no password on 127.0.0.1, and
+#   drupal/drupal on the host "mysql". The database is "drupal".
+# - The caller grants `contents: write` (security/* branches) and
+#   `pull-requests: write` (config pull requests in its own repository), and
+#   uses `secrets: inherit`, or passes the secrets below. Pull requests
+#   opened with the workflow token also need "Allow GitHub Actions to create
+#   and approve pull requests" in the repository's or organization's Actions
+#   settings.
+#
+# Secrets (all optional except the ones the chosen ref-source needs)
+# -------------------------------------------------------------------
+#   ACQUIA_SSH_PRIVATE_KEY  Push access to the Acquia git repositories. Also
+#                           needed for dry runs, which read from them.
+#   ACQUIA_API_KEY, ACQUIA_API_SECRET
+#                           Cloud Platform API credentials (ref-source cloud).
+#   ACSF_USER, ACSF_KEY     Site Factory API credentials (ref-source acsf).
+#   CONFIG_PR_TOKEN         Contents and pull request write access to the
+#                           packages that hold config (e.g. install profiles)
+#                           and to the site repository. Without it, open the
+#                           package pull requests by hand; the site branch and
+#                           pull request fall back to the workflow token, which
+#                           doesn't start GitHub Actions workflows.
+#   SLACK_WEBHOOK_URL       "Ready to deploy" and failure messages.
+#   STANFORD_ENCRYPT        Passed to the site as an environment variable, for
+#                           sites whose settings need it.
+
+name: Production security update
+
+on:
+  workflow_call:
+    inputs:
+      ref-source:
+        description: 'Where to find the production tag: cloud (Cloud Platform API) or acsf (Site Factory API).'
+        type: string
+        default: cloud
+      acquia-apps:
+        description: 'cloud: application UUIDs, one per line. Defaults to command.sws.options.app-id in drush/drush.yml.'
+        type: string
+        default: ''
+      acquia-environment:
+        description: 'cloud: the environment to audit.'
+        type: string
+        default: prod
+      acsf-url:
+        description: 'acsf: the Site Factory URL, e.g. https://www.example.acsitefactory.com.'
+        type: string
+        default: ''
+      acsf-stack-id:
+        description: 'acsf: the stack.'
+        type: string
+        default: '1'
+      prod-ref:
+        description: 'A tag to audit instead of asking an API. Pushed to every git-url in drush/drush.yml.'
+        type: string
+        default: ''
+      scope:
+        description: 'drupal (only drupal/* packages) or all.'
+        type: string
+        default: drupal
+      dry-run:
+        description: 'Build the artifacts but push nothing, open no pull requests and post nothing to Slack.'
+        type: boolean
+        default: false
+      sites:
+        description: 'Sites to consider for the test, one per line. Defaults to command.sws.options.multisites, else default.'
+        type: string
+        default: ''
+      php-version:
+        type: string
+        default: '8.4'
+      php-extensions:
+        type: string
+        default: curl, dom, fileinfo, gd, iconv, imagick, intl, mbstring, openssl, pdo, pdo_mysql, simplexml, sodium, xml, xmlwriter, zip
+      caravan-repository:
+        description: 'Where the ci/security scripts come from. Change only to test a fork.'
+        type: string
+        default: SU-SWS/stanford-caravan
+      caravan-ref:
+        description: 'Ref of caravan-repository for the ci/security scripts. Keep it the same as the ref in the caller''s `uses:` line.'
+        type: string
+        default: 12.x
+    secrets:
+      ACQUIA_SSH_PRIVATE_KEY:
+        required: false
+      ACQUIA_API_KEY:
+        required: false
+      ACQUIA_API_SECRET:
+        required: false
+      ACSF_USER:
+        required: false
+      ACSF_KEY:
+        required: false
+      CONFIG_PR_TOKEN:
+        required: false
+      SLACK_WEBHOOK_URL:
+        required: false
+      STANFORD_ENCRYPT:
+        required: false
+
+# Never run twice at once for a repository: two runs could pick the same +N.
+concurrency:
+  group: production-security-update-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  COMPOSER_NO_INTERACTION: '1'
+  DRY_RUN: ${{ inputs.dry-run && '1' || '' }}
+  SCOPE: ${{ inputs.scope }}
+  # Everything a hotfix job reports on; uploaded as its security-report.
+  REPORT_DIR: /tmp/security-report
+  # The scripts, copied out of the workspace so the site's tree stays clean
+  # (sws:artifact:deploy refuses to build with untracked files).
+  TOOLS: /tmp/security-tools
+
+jobs:
+  # Step 1.
+  discover:
+    name: Find production
+    runs-on: ubuntu-latest
+    outputs:
+      targets: ${{ steps.find.outputs.targets }}
+      count: ${{ steps.find.outputs.count }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Get the scripts
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.caravan-repository }}
+          ref: ${{ inputs.caravan-ref }}
+          path: .security-tools
+          sparse-checkout: ci/security
+
+      - name: Find what production runs
+        id: find
+        env:
+          PROD_REF: ${{ inputs.prod-ref }}
+          REF_SOURCE: ${{ inputs.ref-source }}
+          ACQUIA_APPS: ${{ inputs.acquia-apps }}
+          ACQUIA_ENV: ${{ inputs.acquia-environment }}
+          ACQUIA_API_KEY: ${{ secrets.ACQUIA_API_KEY }}
+          ACQUIA_API_SECRET: ${{ secrets.ACQUIA_API_SECRET }}
+          ACSF_URL: ${{ inputs.acsf-url }}
+          ACSF_STACK_ID: ${{ inputs.acsf-stack-id }}
+          ACSF_USER: ${{ secrets.ACSF_USER }}
+          ACSF_KEY: ${{ secrets.ACSF_KEY }}
+        run: |
+          targets=$(bash .security-tools/ci/security/find-production.sh)
+          echo "$targets" | jq .
+          echo "targets=$targets" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq length <<< "$targets")" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Production"
+            jq -r '.[] | "- `\(.tag)`: \(.labels | join(", "))"' <<< "$targets"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # Step 2, once per distinct production tag.
+  hotfix:
+    name: Hotfix ${{ matrix.target.tag }}
+    needs: discover
+    if: needs.discover.outputs.count > 0
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      # One at a time, so each job sees the versions the previous one pushed.
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        target: ${{ fromJSON(needs.discover.outputs.targets) }}
+    env:
+      PROD_TAG: ${{ matrix.target.tag }}
+      GIT_URLS: ${{ join(matrix.target.git_urls, ' ') }}
+      APPS: ${{ join(matrix.target.labels, ', ') }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      STANFORD_ENCRYPT: ${{ secrets.STANFORD_ENCRYPT }}
+    # Database for the test sites; see "Requirements" above.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: drupal
+          MYSQL_USER: drupal
+          MYSQL_PASSWORD: drupal
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      # Full history and tags, to find the source commit and existing +N.
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # refs/security/* keeps every hotfix's source reachable; checkout
+      # doesn't fetch it.
+      - name: Fetch security refs
+        run: git fetch -q origin '+refs/security/*:refs/security/*'
+
+      - name: Get the scripts
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.caravan-repository }}
+          ref: ${{ inputs.caravan-ref }}
+          path: .security-tools
+          sparse-checkout: ci/security
+
+      - name: Move the scripts out of the workspace
+        run: |
+          mkdir -p "$TOOLS" "$REPORT_DIR"
+          cp -r .security-tools/ci/security "$TOOLS/scripts"
+          rm -rf .security-tools
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php-version }}
+          tools: composer:v2
+          extensions: ${{ inputs.php-extensions }}
+          ini-values: memory_limit=-1
+          coverage: none
+
+      # CI settings reach the database as 127.0.0.1 or as "mysql".
+      - name: Point "mysql" at the database service
+        run: echo "127.0.0.1 mysql" | sudo tee -a /etc/hosts
+
+      # Some drush commands (drupal:install, the sws:multisite:* commands) run
+      # child processes as a bare `drush`, so the project's drush must be on
+      # PATH for every later step.
+      - name: Put the project's drush on PATH
+        run: echo "$GITHUB_WORKSPACE/vendor/bin" >> "$GITHUB_PATH"
+
+      # Global, because sws:artifact:deploy commits in a new repository under
+      # its artifact directory, and config-pr.sh commits in fresh clones.
+      - name: Set the git identity
+        run: |
+          git config --global user.name "SWS Bots"
+          git config --global user.email "sws-developers@lists.stanford.edu"
+
+      - name: Composer cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/composer
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Set up SSH for Acquia
+        id: ssh
+        uses: webfactory/ssh-agent@v0.10.0
+        with:
+          ssh-private-key: ${{ secrets.ACQUIA_SSH_PRIVATE_KEY }}
+
+      - name: Trust the Acquia git hosts
+        run: |
+          for url in $GIT_URLS; do
+            host="${url#*@}"; host="${host%%:*}"
+            ssh-keyscan -t rsa "$host" >> ~/.ssh/known_hosts
+          done
+
+      # Step 2a.
+      - name: Read the production artifact
+        id: artifact
+        run: |
+          url="${GIT_URLS%% *}"
+          mkdir -p ../prod-artifact
+          cd ../prod-artifact
+          git init -q
+          git remote add origin "$url"
+          # Production usually runs a tag; a branch works too.
+          git fetch -q --depth=1 origin "refs/tags/$PROD_TAG:refs/prod" \
+            || git fetch -q --depth=1 origin "refs/heads/$PROD_TAG:refs/prod"
+          git show "refs/prod^{commit}:composer.lock" > "$REPORT_DIR/production-composer.lock"
+          message=$(git log -1 --format=%B "refs/prod^{commit}")
+
+          sha=$(sed -nE 's/^Built from [^@]+@([0-9a-f]{40})$/\1/p' <<< "$message" | head -n1)
+          cd "$GITHUB_WORKSPACE"
+          if [[ -z "$sha" ]]; then
+            source_tag="${PROD_TAG#????-??-??_}"
+            sha=$(git rev-parse --verify -q "refs/tags/$source_tag^{commit}" || true)
+          fi
+          if [[ -z "$sha" ]] || ! git cat-file -e "$sha^{commit}"; then
+            echo "::error::Could not find the source commit for $PROD_TAG in this repository."
+            exit 1
+          fi
+          echo "Built from $sha"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      # Step 2b. Build on the commit production was built from, so the hotfix
+      # contains nothing but the security update.
+      - name: Check out the production source
+        id: checkout_prod
+        env:
+          SHA: ${{ steps.artifact.outputs.sha }}
+        run: |
+          git checkout -q --detach "$SHA"
+          prod_hash=$(jq -r '."content-hash"' "$REPORT_DIR/production-composer.lock")
+          src_hash=$(jq -r '."content-hash"' composer.lock)
+          if [[ "$prod_hash" != "$src_hash" ]]; then
+            echo "::error::composer.json at $SHA doesn't match the production composer.lock ($src_hash != $prod_hash)."
+            exit 1
+          fi
+          cp "$REPORT_DIR/production-composer.lock" composer.lock
+
+      # Step 2b. Exit codes: 0 fixed (at least partly), 3 nothing to fix.
+      - name: Audit and update vulnerable packages
+        id: update
+        run: |
+          set +e
+          bash "$TOOLS/scripts/security-update.sh" "$REPORT_DIR" "$SCOPE"
+          code=$?
+          set -e
+          case $code in
+            0) echo "result=fixed" >> "$GITHUB_OUTPUT"
+               echo "fingerprint=$(cat "$REPORT_DIR/fingerprint.txt")" >> "$GITHUB_OUTPUT" ;;
+            3) echo "result=clean" >> "$GITHUB_OUTPUT" ;;
+            *) exit $code ;;
+          esac
+
+      # Step 2c.
+      - name: Choose the hotfix version
+        id: version
+        if: steps.update.outputs.result == 'fixed'
+        env:
+          SHA: ${{ steps.artifact.outputs.sha }}
+          FINGERPRINT: ${{ steps.update.outputs.fingerprint }}
+        run: |
+          current=$(git describe --tags --exact-match "$SHA" 2>/dev/null || git describe --tags --abbrev=0 "$SHA")
+          base="${current%%+*}"
+
+          # An earlier run already prepared these fixes for this production
+          # tag; don't stack up +2, +3... while it waits to deploy.
+          for ref in $(git for-each-ref --format='%(refname)' "refs/security/$base+*"); do
+            msg=$(git log -1 --format=%B "$ref")
+            if grep -qx "Production-Ref: $PROD_TAG" <<< "$msg" && grep -qx "Security-Fingerprint: $FINGERPRINT" <<< "$msg"; then
+              v="${ref#refs/security/}"
+              # The source ref is pushed before the artifact, so a run that
+              # failed while building leaves the ref without an Acquia tag.
+              missing=()
+              for url in $GIT_URLS; do
+                [[ -n "$(git ls-remote --tags "$url" "*_$v")" ]] || missing+=("$url")
+              done
+              if (( ${#missing[@]} == 0 )); then
+                # Production still runs $PROD_TAG, so that version isn't
+                # deployed and deleting its ref is safe.
+                echo "::notice::$v already fixes these advisories for $PROD_TAG. Deploy its Acquia tag, or run 'git push origin :$ref' to rebuild."
+                echo "skip=1" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              # Build the saved source again, under the same version, for the
+              # git URLs that don't have its tag. The commit step switches to
+              # that source, so the ref and any tag already pushed still match.
+              echo "::notice::$v fixes these advisories for $PROD_TAG, but its artifact isn't on ${missing[*]}. Building it again."
+              {
+                echo "version=$v"
+                echo "tag=$(date -u +%Y-%m-%d)_$v"
+                echo "rebuild=1"
+                echo "build_urls=${missing[*]}"
+              } >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+
+          n=$(
+            {
+              git tag --list "$base+*"
+              git for-each-ref --format='%(refname:short)' "refs/remotes/origin/security/$base+*" "refs/security/$base+*"
+              for url in $GIT_URLS; do
+                git ls-remote --tags "$url" "*_$base+*" | sed 's/\^{}$//'
+              done
+            } | sed -nE 's/.*\+([0-9]+)$/\1/p' | sort -n | tail -n1
+          )
+          version="$base+$(( ${n:-0} + 1 ))"
+          echo "Hotfix version $version (production is $current)"
+          {
+            echo "version=$version"
+            echo "tag=$(date -u +%Y-%m-%d)_$version"
+            echo "build_urls=$GIT_URLS"
+          } >> "$GITHUB_OUTPUT"
+
+      # Step 2d. Leaves the updated code installed.
+      - name: Test the update on sites
+        id: sitetest
+        if: steps.update.outputs.result == 'fixed' && !steps.version.outputs.skip
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SITES: ${{ inputs.sites }}
+        run: |
+          set -o pipefail
+          bash "$TOOLS/scripts/test-update.sh" "$REPORT_DIR" "$VERSION" 2>&1 | tee "$REPORT_DIR/site-test.log"
+          {
+            echo "db_updates=$(grep -c . "$REPORT_DIR/db-updates.md" || true)"
+            echo "config_dirs=$(find "$REPORT_DIR/config" -name meta.json 2>/dev/null | wc -l)"
+            echo "package_configs=$(cat "$REPORT_DIR"/config/*/meta.json 2>/dev/null | jq -s 'map(select(.mode == "package")) | length')"
+          } >> "$GITHUB_OUTPUT"
+
+      # Steps 2e-2f.
+      - name: Commit the hotfix
+        id: commit
+        if: steps.update.outputs.result == 'fixed' && !steps.version.outputs.skip
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          FINGERPRINT: ${{ steps.update.outputs.fingerprint }}
+          REBUILD: ${{ steps.version.outputs.rebuild }}
+        run: |
+          git switch -q -c "security/$VERSION"
+
+          # Config the updates changed: commit it, or patch the package.
+          : > "$REPORT_DIR/config-notes.txt"
+          lock_changed=""
+          for meta in "$REPORT_DIR"/config/*/meta.json; do
+            [[ -f "$meta" ]] || continue
+            patch="$(dirname "$meta")/config.patch"
+            sync_dir=$(jq -r .sync_dir "$meta")
+            if [[ "$(jq -r .mode "$meta")" == repo ]]; then
+              git apply -p1 "$patch"
+              git add -A "$sync_dir"
+              echo "- $sync_dir: committed with the hotfix. A pull request brings it to the default branch; merge it before the next release." >> "$REPORT_DIR/config-notes.txt"
+            else
+              package=$(jq -r .package "$meta")
+              patch_file=$(jq -r .patch_file "$meta")
+              mkdir -p "$(dirname "$patch_file")"
+              cp "$patch" "$patch_file"
+              composer config --json --merge "extra.patches.$package" \
+                "$(jq -nc --arg d "Config changed by the database updates in the $VERSION security update" --arg p "$patch_file" '{($d): $p}')"
+              git add composer.json "$patch_file"
+              lock_changed=1
+              echo "- $sync_dir ($package): patched by $patch_file. Move the change into $package before the next release." >> "$REPORT_DIR/config-notes.txt"
+            fi
+          done
+          if [[ -n "$lock_changed" ]]; then
+            # composer.json changed; refresh the lock's content hash only.
+            composer update --lock --no-install --no-scripts --no-plugins --no-audit --no-progress
+          fi
+          git add composer.lock
+
+          {
+            echo "$VERSION"
+            echo
+            echo "Security update of production tag $PROD_TAG ($APPS)."
+            echo
+            echo "Advisories:"
+            sed 's/^- \*\*\([^*]*\)\*\*: \[\([^]]*\)\]([^)]*) /- \1 \2: /' "$REPORT_DIR/advisories.md"
+            echo
+            echo "Updated packages:"
+            tail -n +3 "$REPORT_DIR/changes.md" | awk -F' *\\| *' '{ printf "- %s %s => %s\n", $2, $3, $4 }'
+            echo
+            if [[ -s "$REPORT_DIR/db-updates.md" ]]; then
+              echo "Database updates:"
+              tr -d '`' < "$REPORT_DIR/db-updates.md"
+            else
+              echo "No database updates."
+            fi
+            if [[ -s "$REPORT_DIR/config-notes.txt" ]]; then
+              echo
+              echo "Config changed by the updates:"
+              cat "$REPORT_DIR/config-notes.txt"
+            fi
+            echo
+            echo "Production-Ref: $PROD_TAG"
+            echo "Security-Fingerprint: $FINGERPRINT"
+          } > "$REPORT_DIR/commit-message.txt"
+          git commit -q -F "$REPORT_DIR/commit-message.txt"
+          if [[ -n "$REBUILD" ]]; then
+            # Rebuilding an earlier run's hotfix: use its saved source, which
+            # has the same fixes, instead of this new commit.
+            git reset -q --hard "refs/security/$VERSION"
+            echo "Rebuilding the source saved in refs/security/$VERSION:"
+          fi
+          git show --stat HEAD
+
+      # drush comes from vendor/; this also applies new config patches,
+      # failing if one doesn't apply. sws:artifact:deploy needs a clean tree.
+      - name: Install dependencies
+        id: install
+        if: steps.update.outputs.result == 'fixed' && !steps.version.outputs.skip
+        run: |
+          composer install --no-progress --optimize-autoloader
+          git reset -q --hard
+          git clean -q -d -f
+
+      # Step 2f. Before the artifact, so every Acquia tag's source exists here.
+      # Pushed with CONFIG_PR_TOKEN when it's set: GitHub doesn't start
+      # workflows (such as a site's `on: push` tests) for pushes made with the
+      # workflow's own token. CircleCI builds either way.
+      - name: Push the source branch
+        id: push_source
+        if: steps.update.outputs.result == 'fixed' && !steps.version.outputs.skip && !env.DRY_RUN
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          REBUILD: ${{ steps.version.outputs.rebuild }}
+          GH_TOKEN: ${{ secrets.CONFIG_PR_TOKEN }}
+        run: |
+          refs=("HEAD:refs/heads/security/$VERSION")
+          # On a rebuild, refs/security/$VERSION already holds this commit;
+          # the branch is restored in case it was deleted.
+          [[ -n "$REBUILD" ]] || refs+=("HEAD:refs/security/$VERSION")
+          if [[ -n "$GH_TOKEN" ]]; then
+            # An empty extraheader drops the checkout's workflow-token header,
+            # so gh supplies GH_TOKEN instead.
+            if git -c http.https://github.com/.extraheader= -c credential.helper= -c 'credential.helper=!gh auth git-credential' \
+                push "https://github.com/$GITHUB_REPOSITORY.git" "${refs[@]}"; then
+              exit 0
+            fi
+            echo "::warning::CONFIG_PR_TOKEN can't push to $GITHUB_REPOSITORY; pushing with the workflow token, so GitHub Actions tests won't start on their own."
+          else
+            echo "::warning::CONFIG_PR_TOKEN isn't set; pushing with the workflow token, so GitHub Actions tests won't start on their own."
+          fi
+          git push origin "${refs[@]}"
+
+      # Step 2g. Exports the commit with git archive, runs composer install
+      # --no-dev (applying patches) and the post-build script from
+      # drush/drush.yml, and pushes the tag to this production tag's git URLs.
+      - name: Build and push the artifact to Acquia
+        id: build
+        if: steps.update.outputs.result == 'fixed' && !steps.version.outputs.skip
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          # Every git URL for this production tag, or on a rebuild only those
+          # missing the version's tag.
+          BUILD_URLS: ${{ steps.version.outputs.build_urls }}
+        run: |
+          args=()
+          for url in $BUILD_URLS; do args+=("--git-url=$url"); done
+          vendor/bin/drush sws:artifact:deploy \
+            --tag="$TAG" \
+            --commit-msg="$VERSION" \
+            "${args[@]}" \
+            --no-interaction \
+            ${DRY_RUN:+--no-push}
+
+      # Step 2e. After the artifact push, so the pull requests can name the tag.
+      - name: Open config pull requests
+        id: config_pr
+        if: steps.sitetest.outputs.config_dirs > 0 && !env.DRY_RUN
+        env:
+          # Package repositories (install profiles). Optional; without it
+          # those pull requests are skipped with a warning.
+          PACKAGE_GH_TOKEN: ${{ secrets.CONFIG_PR_TOKEN }}
+          # This repository, for sync dirs committed here. Needs the caller's
+          # `pull-requests: write` permission.
+          SITE_GH_TOKEN: ${{ github.token }}
+          PROD_SHA: ${{ steps.artifact.outputs.sha }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          # Optional GitHub login(s), comma-separated, to assign the pull
+          # requests to. A reusable workflow reads variables from the calling
+          # repository, so set it there or on its organization.
+          PR_ASSIGNEE: ${{ vars.CONFIG_PR_ASSIGNEE }}
+        run: bash "$TOOLS/scripts/config-pr.sh" "$REPORT_DIR" "$VERSION" "$TAG"
+
+      # Step 2g2. A pull request from security/<version> to the default
+      # branch, to review the composer changes and run the site's tests.
+      # After the config pull requests, so it can link them. Opened with
+      # CONFIG_PR_TOKEN when it can be, so `pull_request` workflows start.
+      - name: Open the hotfix pull request
+        id: hotfix_pr
+        # Even if a config pull request failed: the branch and tag exist.
+        if: ${{ !cancelled() && steps.push_source.outcome == 'success' && steps.build.outcome == 'success' }}
+        env:
+          PAT: ${{ secrets.CONFIG_PR_TOKEN }}
+          # Needs the caller's `pull-requests: write` permission.
+          SITE_GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          PR_ASSIGNEE: ${{ vars.CONFIG_PR_ASSIGNEE }}
+        run: |
+          if [[ -n "$PAT" ]] && GH_TOKEN="$PAT" bash "$TOOLS/scripts/hotfix-pr.sh" "$REPORT_DIR" "$VERSION" "$TAG"; then
+            exit 0
+          fi
+          [[ -z "$PAT" ]] || echo "::warning::Couldn't open the pull request with CONFIG_PR_TOKEN; using the workflow token, so pull_request workflows won't start on their own."
+          GH_TOKEN="$SITE_GH_TOKEN" bash "$TOOLS/scripts/hotfix-pr.sh" "$REPORT_DIR" "$VERSION" "$TAG"
+
+      # Step 2h.
+      - name: Notify Slack
+        id: notify
+        if: steps.update.outputs.result == 'fixed' && !steps.version.outputs.skip && !env.DRY_RUN
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          DB_UPDATES: ${{ steps.sitetest.outputs.db_updates }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if [[ -z "$SLACK_WEBHOOK_URL" ]]; then
+            echo "::notice::SLACK_WEBHOOK_URL isn't set; skipping the Slack notification."
+            exit 0
+          fi
+          source "$TOOLS/scripts/lib.sh"
+          # Production packages only; dev packages aren't in the artifact.
+          jq -r '.["packages-dev"][]?.name' composer.lock > "$REPORT_DIR/dev-packages.txt"
+          packages=$(tail -n +3 "$REPORT_DIR/changes.md" \
+            | awk -F' *\\| *' 'NR == FNR { dev[$0] = 1; next } !($2 in dev) { printf "• `%s` %s → %s\n", $2, $3, $4 }' "$REPORT_DIR/dev-packages.txt" -)
+          advisories=$(cut -f2,4 "$REPORT_DIR/advisories.tsv" | sort -u | awk -F'\t' '{ printf "<%s|%s>  ", $2, $1 }')
+          if (( ${DB_UPDATES:-0} > 0 )); then
+            # Slack sections hold 3000 characters; list the first 15.
+            updates=":warning: *Database updates required ($DB_UPDATES):*"$'\n'"$(sed 's/^- /• /' "$REPORT_DIR/db-updates.md" | head -n 15 | slack_escape)"
+            (( DB_UPDATES > 15 )) && updates+=$'\n'"…and $(( DB_UPDATES - 15 )) more (see the workflow run)"
+          else
+            updates=":white_check_mark: No database updates."
+          fi
+          # Always say whether config changes, like the database updates.
+          if [[ -s "$REPORT_DIR/config-notes.txt" ]]; then
+            dirs=$(grep -c . "$REPORT_DIR/config-notes.txt")
+            (( dirs == 1 )) && dirs+=" config directory" || dirs+=" config directories"
+            updates+=$'\n'":warning: *Configuration changes required ($dirs):*"$'\n'"$(sed 's/^- /• /' "$REPORT_DIR/config-notes.txt" | slack_escape)"
+          else
+            updates+=$'\n'":white_check_mark: No configuration changes."
+          fi
+          if [[ -s "$REPORT_DIR/config-prs.txt" ]]; then
+            updates+=$'\n'"Merge before the next release: $(sort -u "$REPORT_DIR/config-prs.txt" | awk '{ printf "%s<%s|%s>", sep, $2, $1; sep = ", " }')"
+          fi
+          if [[ -s "$REPORT_DIR/hotfix-pr.txt" ]]; then
+            updates+=$'\n'"Tests: <$(cat "$REPORT_DIR/hotfix-pr.txt")|hotfix pull request>"
+          fi
+          jq -n \
+            --arg tag "$TAG" \
+            --arg prod "$PROD_TAG" \
+            --arg apps "$(slack_escape <<< "$APPS")" \
+            --arg repo "$GITHUB_REPOSITORY" \
+            --arg packages "$packages" \
+            --arg advisories "$advisories" \
+            --arg updates "$updates" \
+            --arg run "$RUN_URL" '
+            # Slack rejects the whole message if a text is over 3000 characters.
+            def cap: if length > 2900 then .[:2900] + "\n…(see the workflow run)" else . end;
+            {
+              text: "Security update ready to deploy: \($tag)",
+              blocks: [
+                { type: "header", text: { type: "plain_text", text: "Security update ready to deploy" } },
+                { type: "section", text: { type: "mrkdwn", text: ("*Tag:* `\($tag)`\n*Replaces:* `\($prod)`\n*Applications:* \($apps)\n*Repository:* \($repo)" | cap) } },
+                { type: "section", text: { type: "mrkdwn", text: ("*Updated dependencies:*\n\($packages)" | cap) } },
+                { type: "section", text: { type: "mrkdwn", text: ($updates | cap) } },
+                { type: "context", elements: [ { type: "mrkdwn", text: (("Fixes \($advisories)" | cap) + " · <\($run)|Workflow run>") } ] }
+              ]
+            }' > "$REPORT_DIR/slack.json"
+          curl -sS --fail-with-body -X POST -H 'Content-Type: application/json' --data @"$REPORT_DIR/slack.json" "$SLACK_WEBHOOK_URL"
+
+      # Step 2h, on failure. New steps need an id and a line in OUTCOMES.
+      - name: Notify Slack of a failure
+        if: failure() && !env.DRY_RUN
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SITETEST: ${{ steps.sitetest.outcome }}
+          OUTCOMES: |
+            ${{ steps.ssh.outcome }} setting up SSH for Acquia
+            ${{ steps.artifact.outcome }} reading the production artifact from Acquia
+            ${{ steps.checkout_prod.outcome }} checking out the production source
+            ${{ steps.update.outcome }} updating the vulnerable packages
+            ${{ steps.version.outcome }} choosing the hotfix version
+            ${{ steps.sitetest.outcome }} testing the update on sites (install, database updates, config export)
+            ${{ steps.commit.outcome }} committing the hotfix
+            ${{ steps.install.outcome }} installing the updated dependencies
+            ${{ steps.push_source.outcome }} pushing the source branch
+            ${{ steps.build.outcome }} building and pushing the Acquia artifact
+            ${{ steps.config_pr.outcome }} opening the config pull requests
+            ${{ steps.hotfix_pr.outcome }} opening the hotfix pull request
+            ${{ steps.notify.outcome }} sending the Slack notification
+        run: |
+          if [[ -z "$SLACK_WEBHOOK_URL" ]]; then
+            echo "::notice::SLACK_WEBHOOK_URL isn't set; skipping the Slack notification."
+            exit 0
+          fi
+          source "$TOOLS/scripts/lib.sh"
+          mkdir -p "$REPORT_DIR"
+          failed=$(sed -nE 's/^ *failure (.*)$/\1/p' <<< "$OUTCOMES" | head -n1)
+          details="*Failed while:* ${failed:-setting up the job}"
+          details+=$'\n'"*Repository:* $GITHUB_REPOSITORY"
+          details+=$'\n'"*Production tag:* \`$PROD_TAG\` ($APPS)"
+          [[ -n "$VERSION" ]] && details+=$'\n'"*Hotfix version:* \`$VERSION\`"
+          if [[ -s "$REPORT_DIR/changes.md" ]]; then
+            details+=$'\n'"*Updating:* $(tail -n +3 "$REPORT_DIR/changes.md" | awk -F' *\\| *' '{ printf "%s%s %s → %s", sep, $2, $3, $4; sep = ", " }')"
+          fi
+          log=""
+          if [[ "$SITETEST" == failure && -s "$REPORT_DIR/site-test.log" ]]; then
+            # shellcheck disable=SC2016 # Literal backticks.
+            log=$(grep -v '^::' "$REPORT_DIR/site-test.log" | tail -n 20 | cut -c1-200 | sed 's/```/` ` `/g' | slack_escape)
+          fi
+          details=$(slack_escape <<< "$details")
+          jq -n --arg details "$details" --arg log "$log" --arg run "$RUN_URL" '
+            # Slack rejects the whole message if a text is over 3000 characters.
+            def cap: if length > 2900 then .[:2900] + "\n…" else . end;
+            {
+              text: "Production security update failed",
+              blocks: ([
+                { type: "header", text: { type: "plain_text", text: ":x: Production security update failed" } },
+                { type: "section", text: { type: "mrkdwn", text: ($details | cap) } }
+              ] + (if $log == "" then [] else [
+                { type: "section", text: { type: "mrkdwn", text: ("```" + (if ($log | length) > 2800 then "…" + $log[-2800:] else $log end) + "```") } }
+              ] end) + [
+                { type: "context", elements: [ { type: "mrkdwn", text: "<\($run)|Workflow run>" } ] }
+              ])
+            }' > "$REPORT_DIR/slack-failure.json"
+          curl -sS --fail-with-body -X POST -H 'Content-Type: application/json' --data @"$REPORT_DIR/slack-failure.json" "$SLACK_WEBHOOK_URL"
+
+      - name: Summary
+        if: always()
+        env:
+          RESULT: ${{ steps.update.outputs.result }}
+          SKIP: ${{ steps.version.outputs.skip }}
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          {
+            echo "## Hotfix of \`$PROD_TAG\`"
+            echo
+            echo "Applications: $APPS · scope: \`$SCOPE\`"
+            echo
+            if [[ "$RESULT" == "clean" ]]; then
+              echo "No security advisories in scope. Nothing to do."
+            elif [[ -s "$REPORT_DIR/advisories.md" ]]; then
+              echo "### Advisories"
+              cat "$REPORT_DIR/advisories.md"
+              echo
+              if [[ -s "$REPORT_DIR/changes.md" ]]; then
+                echo "### Updated packages (strategy: \`$(cat "$REPORT_DIR/strategy.txt")\`)"
+                cat "$REPORT_DIR/changes.md"
+                echo
+              fi
+              if [[ -s "$REPORT_DIR/tested-sites.txt" ]]; then
+                echo "### Tested sites"
+                awk '{ printf "- `%s` (%s)\n", $1, $2 }' "$REPORT_DIR/tested-sites.txt"
+                echo
+              fi
+              if [[ -f "$REPORT_DIR/db-updates.md" ]]; then
+                echo "### Database updates"
+                if [[ -s "$REPORT_DIR/db-updates.md" ]]; then cat "$REPORT_DIR/db-updates.md"; else echo "None."; fi
+                echo
+              fi
+              if [[ -s "$REPORT_DIR/config-changes.md" ]]; then
+                echo "### Config changed by the updates"
+                echo "\`drush deploy\` imports config right after the updates, so the hotfix ships these changes."
+                echo
+                cat "$REPORT_DIR/config-changes.md"
+              fi
+              if [[ -s "$REPORT_DIR/unresolved.md" ]]; then
+                echo "### Not fixed by a composer update"
+                cat "$REPORT_DIR/unresolved.md"
+                echo
+              fi
+              if [[ -n "$SKIP" ]]; then
+                echo "A hotfix for these advisories already exists. Nothing new was built."
+              elif [[ "$JOB_STATUS" == "success" && -n "$VERSION" ]]; then
+                if [[ -n "$DRY_RUN" ]]; then
+                  echo "**Dry run:** built \`$TAG\` but pushed nothing."
+                else
+                  echo "### Ready to deploy"
+                  echo "- Acquia tag: \`$TAG\`, pushed to: $APPS"
+                  echo "- Source branch: [\`security/$VERSION\`]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/tree/security/$VERSION)"
+                  if [[ -s "$REPORT_DIR/hotfix-pr.txt" ]]; then
+                    echo "- Hotfix pull request (tests): $(cat "$REPORT_DIR/hotfix-pr.txt")"
+                  fi
+                  if [[ -s "$REPORT_DIR/config-prs.txt" ]]; then
+                    sort -u "$REPORT_DIR/config-prs.txt" | awk '{ printf "- %s config pull request: %s\n", $1, $2 }'
+                  fi
+                fi
+              fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Name the report
+        if: always()
+        id: report
+        run: echo "name=security-report-$(tr -c 'A-Za-z0-9._+-' '-' <<< "$PROD_TAG" | sed 's/-*$//')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload report
+        if: always() && steps.update.outputs.result
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.report.outputs.name }}
+          path: |
+            ${{ env.REPORT_DIR }}/*.json
+            ${{ env.REPORT_DIR }}/*.md
+            ${{ env.REPORT_DIR }}/*.txt
+            ${{ env.REPORT_DIR }}/*.log
+            ${{ env.REPORT_DIR }}/config/
+            ${{ env.REPORT_DIR }}/sites/*/*.json
+            ${{ github.workspace }}/composer.lock
+          if-no-files-found: ignore

@@ -1,0 +1,53 @@
+# Copy to .github/workflows/security-update.yml in a site repository and set
+# the `with:` values for the site. See the README for the secrets.
+
+name: Production security update
+
+on:
+  schedule:
+    # Daily, plus Wednesday evening after Drupal security releases.
+    - cron: '0 14 * * *'
+    - cron: '0 22 * * 3'
+  workflow_dispatch:
+    inputs:
+      prod-ref:
+        description: 'Acquia tag to audit (e.g. 2026-10-30_7.0.3). Leave empty to ask Acquia what production runs.'
+        required: false
+        default: ''
+      scope:
+        description: 'Which vulnerable packages to update.'
+        type: choice
+        options: [drupal, all]
+        default: drupal
+      dry-run:
+        description: 'Build the artifacts but push nothing.'
+        type: boolean
+        default: false
+
+# Pushes security/* branches and refs/security/* to this repository, and
+# opens pull requests here for config committed in this repository.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  security-update:
+    # Keep the ref here and caravan-ref below the same.
+    uses: SU-SWS/stanford-caravan/.github/workflows/security-update.yml@12.x
+    with:
+      caravan-ref: 12.x
+      # Cloud Platform: audits each application's prod environment. The
+      # default application is command.sws.options.app-id in drush/drush.yml;
+      # list several (one per line) if this code runs on more than one.
+      ref-source: cloud
+      # acquia-apps: |
+      #   00000000-0000-0000-0000-000000000000
+      #   11111111-1111-1111-1111-111111111111
+      #
+      # Site Factory instead:
+      # ref-source: acsf
+      # acsf-url: https://www.example.acsitefactory.com
+      prod-ref: ${{ inputs.prod-ref || '' }}
+      scope: ${{ inputs.scope || 'drupal' }}
+      dry-run: ${{ inputs.dry-run || false }}
+    secrets: inherit

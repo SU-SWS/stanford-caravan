@@ -4,14 +4,17 @@ Guidance for AI coding agents working in this repository (`su-sws/stanford-carav
 
 ## What this repo is
 
-Test tooling for Stanford's Drupal modules, themes and profiles. It has four parts:
+Test tooling for Stanford's Drupal modules, themes and profiles, plus a workflow that
+builds security hotfixes of Drupal sites. It has these parts:
 
 | Path | What it is |
 |---|---|
 | `.github/workflows/drupal-tests.yml` | Reusable GitHub Actions workflow (`on: workflow_call`) that runs PHPUnit and Codeception for the extension in the calling repository. |
 | `ci/` | The shell and PHP scripts that workflow runs, one per step. |
+| `.github/workflows/security-update.yml` | Reusable workflow that Drupal **site** repositories call to build security hotfixes of what their production runs on Acquia. |
+| `ci/security/` | The bash scripts the security update workflow runs. |
 | `src/Codeception/Drupal/` | Codeception modules that extensions' tests use: `DrupalBootstrap`, `DrupalDrush`, `DrupalEntity`, `DrupalUser`. |
-| `config/` | Files copied into the test project: `composer.json` (merged in), `circleci.settings.php` (becomes `settings.php`), `phpunit.xml`, `codeception/*.yml`, `patches/`. Also `phpcs.xml` (the default coding standard) and `config/.github/workflows/tests.yml` (the caller template). |
+| `config/` | Files copied into the test project: `composer.json` (merged in), `circleci.settings.php` (becomes `settings.php`), `phpunit.xml`, `codeception/*.yml`, `patches/`. Also `phpcs.xml` (the default coding standard), and the caller templates `config/.github/workflows/tests.yml` and `config/.github/workflows/security-update.yml`. |
 
 12.x has no command-line tool. The `sws-caravan` Robo commands (`phpunit`,
 `codeception`, `back-to-dev`) were deprecated in 11.x and removed here; `ci/` and
@@ -65,6 +68,7 @@ repositories still on the Robo commands go on the 11.x branch.
 
 ## The ci/ scripts
 
+- These notes cover the test scripts directly in `ci/`; `ci/security/` is separate (below).
 - Each takes `<extension dir> <site dir>` (`lint.sh` only takes the extension) and
   reads its settings from environment variables listed in its header comment.
   Keep that header accurate.
@@ -78,6 +82,7 @@ repositories still on the Robo commands go on the 11.x branch.
 
   ```bash
   docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:v0.10.0 -x -P ci ci/*.sh
+  docker run --rm -v "$PWD:/mnt" -w /mnt koalaman/shellcheck:v0.10.0 -x -P ci/security ci/security/*.sh
   docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color=false
   ```
 
@@ -131,6 +136,34 @@ SUITES=acceptance DOMAIN=localhost:8089 ci/codeception.sh ../my_module /tmp/site
 2. In a test branch of a calling repository, point both `uses: ...@<branch>` and
    `caravan-ref: <branch>` at it, then push.
 3. Merge to `12.x` once the run passes, and point the caller back at `12.x`.
+
+## The security update workflow
+
+`.github/workflows/security-update.yml` (`on: workflow_call`) runs in Drupal site repositories,
+not extensions. The README's "Production security update" section covers usage, and the
+workflow's header describes each step.
+
+- **Callers name a ref** on their `uses:` line and pass the same `caravan-ref`, which the workflow
+  uses to check out `ci/security/` (a sparse checkout). Changing an input, output or secret name
+  breaks callers. Add new inputs with defaults that keep the current behavior.
+- **The scripts run against the caller's repository**, from its root. They read its
+  `drush/drush.yml` through `drush_yml` in `ci/security/lib.sh` (not `ci/lib.sh`), which uses
+  Python's yaml module or falls back to `yq`.
+- **The workflow copies `ci/security/` to `/tmp/security-tools/scripts`** and removes the checkout,
+  because `drush sws:artifact:deploy` refuses to build with untracked files.
+- **Give new hotfix steps an `id`** and a line in `OUTCOMES` in "Notify Slack of a failure", so
+  failures name them.
+- **Test what you can locally:**
+  - `security-update.sh` on a copy of a `composer.json`/`composer.lock` pair in a scratch
+    directory.
+  - `find-production.sh` with `PROD_REF` set.
+  - `config-pr.sh` with a stub `gh` on `PATH` and `CLONE_URL_TEMPLATE` pointing at local bare
+    repositories.
+  - `hotfix-pr.sh` with a stub `gh` on `PATH`.
+- **Don't run `test-update.sh` against a real site:** it reinstalls sites and drops their
+  databases. Test the full workflow with a caller's `dry-run` input, pointing its `uses:` ref and
+  `caravan-ref` at a branch of this repository.
+- The commits and pull requests the workflow creates never carry AI/Claude attribution either.
 
 ## Codeception modules
 
