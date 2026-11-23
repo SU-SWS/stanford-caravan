@@ -14,7 +14,11 @@
   <!-- CI configuration, not Drupal code. -->
   <exclude-pattern>*/.github/*</exclude-pattern>
 
-  <rule ref="Drupal"/>
+  <rule ref="Drupal">
+    <!-- Stanford packages aren't packaged by drupal.org, so their info files
+         keep the version and project keys this sniff asks to remove. -->
+    <exclude name="Drupal.InfoFiles.AutoAddedKeys"/>
+  </rule>
   <rule ref="DrupalPractice"/>
 
   <!-- Codeception tests name their actor $I. -->

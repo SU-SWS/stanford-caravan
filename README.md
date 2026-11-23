@@ -57,9 +57,11 @@ The **Code Quality** job runs on `primary-php`:
 - **PHPCS** with `drupal/coder` (the `Drupal` and `DrupalPractice` standards),
   installed apart from the extension so their dependencies can't clash. The
   default ruleset is [config/phpcs.xml](config/phpcs.xml). It checks PHP, info
-  and YAML files, skips `node_modules`, `vendor`, `dist` and `.github`, and
-  allows Codeception's `$I`. An extension with its own `phpcs.xml`,
-  `phpcs.xml.dist`, `.phpcs.xml` or `.phpcs.xml.dist` uses that instead.
+  and YAML files, skips `node_modules`, `vendor`, `dist` and `.github`, allows
+  Codeception's `$I`, and lets info files keep the `version` and `project` keys
+  that drupal.org packaging would otherwise add. An extension with its own
+  `phpcs.xml`, `phpcs.xml.dist`, `.phpcs.xml` or `.phpcs.xml.dist` uses that
+  instead.
 - **PHPStan** with `phpstan-drupal` and `phpstan-deprecation-rules`, in a built
   project. It analyses the whole extension except `tests/codeception` at
   `phpstan-level`. An extension with its own `phpstan.neon` or
