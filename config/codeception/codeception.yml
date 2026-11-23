@@ -59,6 +59,13 @@ env:
           browser: chrome
           host: selenium
           port: 4444
+          capabilities:
+            goog:chromeOptions:
+              # The site is served over plain http, so Chrome would not treat it
+              # as a secure context and APIs such as crypto.subtle would be
+              # missing (Editoria11y needs it). Real sites use https.
+              args:
+                - '--unsafely-treat-insecure-origin-as-secure=http://drupal8ci'
   firefix:
     modules:
       config:

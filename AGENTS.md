@@ -57,6 +57,11 @@ repositories still on the Robo commands go on the 11.x branch.
   opens). The workflow adds both to the runner's `/etc/hosts`, and Selenium maps
   `drupal8ci` to the runner with `--add-host=drupal8ci:host-gateway`. Changing
   those names means changing the config and the workflow together.
+- The site is plain `http://drupal8ci`, which Chrome doesn't treat as a secure
+  context, so APIs like `crypto.subtle` would be missing. The `github_actions`
+  WebDriver config passes Chrome
+  `--unsafely-treat-insecure-origin-as-secure=http://drupal8ci`; keep that
+  origin in step with the site URL.
 - The web server is a separate process started in its own step, and it's the
   process that renders pages. Anything the site reads from the environment
   (like `STANFORD_ENCRYPT`) must be set at job level, not only on the test step.
